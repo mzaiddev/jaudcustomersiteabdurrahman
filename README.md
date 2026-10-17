@@ -15,7 +15,10 @@ The visual direction is based on the [Joud Spa Canva design](https://www.canva.c
 - Welcome and branch-selection screen for Riyadh, Jazan, and Khobar.
 - Home page with links to treatments and packages.
 - Treatment catalog and package listings.
-- Package details with included services and package information.
+- Reference-styled, bilingual session/package catalogues with branch breadcrumbs.
+- Individual-session and package detail views with booking actions, add-ons, and before/after care guidance.
+- The 16 individual sessions and packages use the reference catalogue's listed prices, descriptions, durations, and group terms; VIP detox products are shown for Riyadh only.
+- Product image placeholders in catalogue and detail views for project-owned photography.
 - Appointment selection interface with specialist, date, and time selection.
 - Language preference saved in browser local storage.
 - Brand and design images served locally from `public/`.
@@ -62,6 +65,7 @@ Open [http://localhost:3000](http://localhost:3000) in a browser. The developmen
 │       ├── globals.css     # Global styles and responsive layouts
 │       ├── layout.tsx      # Root layout, fonts, and page metadata
 │       ├── page.tsx        # Website screens and client-side interactions
+│       ├── product-catalogue.ts # Localized catalogue facts, pricing, and product terms
 │       └── site-assets.ts  # Central asset registry
 ├── next.config.ts
 ├── package.json

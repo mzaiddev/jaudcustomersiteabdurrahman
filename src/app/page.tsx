@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { productCatalogue, type ProductId } from "./product-catalogue";
 import { siteAssets } from "./site-assets";
 
 type Language = "ar" | "en";
 type Branch = "riyadh" | "jazan" | "khobar";
-type Screen = "welcome" | "home" | "services" | "package" | "booking";
+type Screen = "welcome" | "home" | "services" | "service" | "package" | "booking";
 type ServiceTab = "individual" | "packages";
-type BookingProduct = "quiet" | "relaxation" | "massage" | "skin" | "foot";
+type BookingProduct = ProductId;
 type IconName = keyof typeof siteAssets.icons;
 type ImageName = keyof typeof siteAssets.images;
 
@@ -18,6 +19,8 @@ const translations = {
     services: "الخدمات",
     packages: "الباقات",
     bookings: "حجوزاتي",
+    profile: "الملف الشخصي",
+    profileUnavailable: "لا يتوفر مسار للملف الشخصي حالياً",
     location: "الفرع",
     language: "English",
     welcomeEyebrow: "جود سبا · عناية واسترخاء",
@@ -58,6 +61,7 @@ const translations = {
     packageDescription:
       "استرخاء عميق وتجديد متكامل يجمع بين لمسات علاجية مختارة بعناية لإعادة التوازن للجسم والذهن.",
     includedServices: "الخدمات التي تشملها",
+    productDetails: "تفاصيل المنتج",
     sessionCount: "عدد الجلسات",
     sessionDuration: "مدة الجلسة",
     packageValidity: "صلاحية الباقة",
@@ -109,6 +113,8 @@ const translations = {
     services: "Treatments",
     packages: "Packages",
     bookings: "My bookings",
+    profile: "Profile",
+    profileUnavailable: "The profile page is not available yet",
     location: "Branch",
     language: "العربية",
     welcomeEyebrow: "JOUD SPA · CARE & WELLNESS",
@@ -151,6 +157,7 @@ const translations = {
     packageDescription:
       "Deep relaxation and complete renewal, with carefully chosen therapeutic touches to restore balance to body and mind.",
     includedServices: "What's included",
+    productDetails: "Product details",
     sessionCount: "Sessions",
     sessionDuration: "Session length",
     packageValidity: "Package validity",
@@ -199,7 +206,195 @@ const translations = {
   },
 } as const;
 
-const branches: Branch[] = ["riyadh", "jazan", "khobar"];
+const landingCopy = {
+  ar: {
+    aboutNav: "عن الجودي سبا",
+    faqNav: "الأسئلة الشائعة",
+    contactNav: "تواصل معنا",
+    heroTitle: "لحظة العناية تبدأ من هنا",
+    heroDescription: "اختاري فرعكِ، واكتشفي الجلسات والباقات المتاحة لكِ.",
+    heroTagline: "العناية والرفاهية، في راحة منزلكِ",
+    heroAction: "تعرّفي على الجودي سبا",
+    branchNames: { riyadh: "RIYADH", jazan: "JAZAN", khobar: "AL KHOBAR" },
+    aboutEyebrow: "عن الجودي سبا",
+    aboutTitle: "مساحة من الهدوء، تأتي إليكِ",
+    aboutParagraphs: [
+      "الجودي سبا تجربة عناية ورفاهية منزلية، تمنحكِ مساحة تستعيدين فيها هدوءكِ وتوازنكِ، دون أن تغادري المكان الذي ترتاحين فيه.",
+      "نؤمن أن العناية بالنفس ليست تفصيلًا مؤجلًا؛ بل وقتٌ تستحقينه. من اختيار جلستكِ إلى موعد زيارتكِ، تبدأ التجربة بكِ وبما يناسب يومكِ.",
+    ],
+    aboutImageAlt: "تفاصيل من هوية الجودي سبا والعناية المنزلية",
+    experienceEyebrow: "تجربة الجودي",
+    experienceTitle: "العناية في التفاصيل",
+    experienceItems: [
+      ["في راحة منزلكِ", "مساحتكِ المألوفة تصبح مكانًا للحظة عناية وهدوء."],
+      ["بما يناسب يومكِ", "اختاري من المواعيد المتاحة، وامنحي نفسكِ الوقت الذي تحتاجينه."],
+      ["على إيقاعكِ", "جلسة فردية للحظتكِ، أو باقة تجعل العناية جزءًا من روتينكِ."],
+    ],
+    storyTitle: "امنحي نفسكِ وقتًا… ودعي الباقي علينا",
+    storyDescription: "لحظات من العناية، وقليل من الهدوء، ومساحة لكِ وحدكِ.",
+    journeyEyebrow: "من اختياركِ إلى زيارتكِ",
+    journeyTitle: "رحلتكِ مع الجودي",
+    journeyDescription: "خطوات بسيطة تقرّبكِ من لحظة العناية التي تستحقينها.",
+    journeyItems: [
+      ["اختاري الفرع", "ابدئي بالفرع الذي يقدّم الخدمة في مدينتكِ."],
+      ["اكتشفي جلستكِ", "اختاري الخدمة أو الباقة المناسبة لكِ."],
+      ["حدّدي موعدكِ", "اختاري الأخصائية والموعد المتاح وعنوان الزيارة."],
+      ["أكّدي حجزكِ", "أكملي الدفع، واستعدّي للحظة راحتكِ."],
+    ],
+    faqEyebrow: "قبل لحظة العناية",
+    faqTitle: "أسئلتكِ، بكل وضوح",
+    faqDescription: "إجابات تساعدكِ على بدء تجربتكِ.",
+    faqItems: [
+      ["ما هي الجودي سبا؟", "الجودي سبا تقدّم جلسات عناية ورفاهية في المنزل. اختاري فرعكِ للتعرّف على الخدمات والباقات المتاحة."],
+      ["كيف أبدأ الحجز؟", "من أعلى الصفحة اختاري الفرع، ثم الخدمة أو الباقة، والأخصائية والموعد المتاح. بعد إدخال عنوان الزيارة وإتمام الدفع يتم تأكيد الحجز."],
+      ["أين تتوفر الخدمة؟", "تتوفر الخدمة في فروع الرياض وجازان والخبر. اختاري فرعكِ للتعرّف على الخدمات المتاحة."],
+      ["هل أختار الأخصائية عند الحجز؟", "نعم، يمكنكِ اختيار الأخصائية والموعد المتاح أثناء الحجز."],
+      ["كيف أشتري باقة جلسات؟", "اختاري الباقة والأخصائية، واحجزي موعد الجلسة الأولى قبل إتمام الشراء. جميع جلسات الباقة تكون مع الأخصائية المختارة نفسها."],
+      ["كيف أحجز الجلسات التالية من الباقة؟", "من «باقاتي» يمكنكِ متابعة الجلسات وحجز الموعد التالي من مواعيد أخصائيتكِ المتاحة."],
+    ],
+    contactEyebrow: "يسعدنا نكون قريبين منكِ",
+    contactTitle: "لديكِ استفسار؟",
+    contactDescription: "نساعدكِ في التعرّف على التجربة واختيار ما يناسبكِ.",
+    contactAction: "تواصلي معنا",
+    chooseBranchAction: "اختاري فرعكِ",
+    footerTagline: "الجودي سبا · العناية أقرب إليكِ",
+    footerFollow: "تابعينا… وخلي العناية أقرب",
+    socialLinks: ["سناب شات", "تيك توك", "إنستجرام"],
+    footerCopyright: "الجودي سبا · جميع الحقوق محفوظة",
+  },
+  en: {
+    aboutNav: "About AlJoudi",
+    faqNav: "FAQs",
+    contactNav: "Contact us",
+    heroTitle: "Your moment of care starts here",
+    heroDescription: "Choose your branch and explore the sessions and packages available to you.",
+    heroTagline: "Care and wellness, in the comfort of home",
+    heroAction: "Discover AlJoudi",
+    branchNames: { riyadh: "RIYADH", jazan: "JAZAN", khobar: "AL KHOBAR" },
+    aboutEyebrow: "About AlJoudi",
+    aboutTitle: "A space for calm, brought to you",
+    aboutParagraphs: [
+      "AlJoudi brings care and wellness to your home, giving you space to restore your calm and balance in the place where you feel most at ease.",
+      "We believe self-care deserves a place in your day. From choosing your session to arranging your visit, the experience begins with you and what works for your routine.",
+    ],
+    aboutImageAlt: "A glimpse of AlJoudi's identity and at-home care",
+    experienceEyebrow: "The AlJoudi experience",
+    experienceTitle: "Care is in the details",
+    experienceItems: [
+      ["In the comfort of home", "Your familiar surroundings become a space for care and calm."],
+      ["Around your day", "Choose an available appointment and give yourself the time you need."],
+      ["At your own pace", "A single session just for you, or a package that makes care part of your routine."],
+    ],
+    storyTitle: "Make time for yourself… and leave the rest to us",
+    storyDescription: "Moments of care, a little calm, and space just for you.",
+    journeyEyebrow: "From your choice to your visit",
+    journeyTitle: "Your journey with AlJoudi",
+    journeyDescription: "A few simple steps to the moment of care you deserve.",
+    journeyItems: [
+      ["Choose your branch", "Start with the branch serving your city."],
+      ["Find your session", "Choose the service or package that suits you."],
+      ["Plan your visit", "Select your specialist, an available time, and your visit address."],
+      ["Confirm your booking", "Complete payment and get ready for your moment of calm."],
+    ],
+    faqEyebrow: "Before your visit",
+    faqTitle: "Your questions, clearly answered",
+    faqDescription: "Answers to help you begin your experience.",
+    faqItems: [
+      ["What is AlJoudi Spa?", "AlJoudi Spa offers care and wellness sessions at home. Choose your branch to explore the available services and packages."],
+      ["How do I book?", "Choose your branch, then a service or package, your specialist, and an available appointment. Add your visit address and complete payment to confirm your booking."],
+      ["Where is the service available?", "Choose from our Riyadh, Jazan, and Al Khobar branches to see the services available in your area."],
+      ["Can I choose my specialist?", "Yes. Choose your specialist and an available appointment while booking."],
+      ["How do I purchase a package?", "Select a package and specialist, then book your first session before completing the purchase. All package sessions are with the same specialist."],
+      ["How do I book the remaining package sessions?", "Use My Packages to track your sessions and book the next appointment from your specialist's available times."],
+    ],
+    contactEyebrow: "Here for you",
+    contactTitle: "Have a question?",
+    contactDescription: "We can help you discover the experience and choose what suits you.",
+    contactAction: "Get in touch",
+    chooseBranchAction: "Choose your branch",
+    footerTagline: "AlJoudi Spa · Care, closer to you",
+    footerFollow: "Follow us… and keep care close",
+    socialLinks: ["Snapchat", "TikTok", "Instagram"],
+    footerCopyright: "AlJoudi Spa · All rights reserved",
+  },
+} as const;
+
+const journeyCopy = {
+  ar: {
+    imagePlaceholder: "أضيفي الصورة هنا",
+    branchesCrumb: "الفروع / تغيير الفرع",
+    categoryTitle: "لحظة عنايتكِ في",
+    categoryDescription: "اختاري جلستكِ أو باقتكِ، وحدّدي الأخصائية والموعد المناسب لكِ.",
+    homeService: "خدمة منزلية",
+    previewNotice:
+      "الأخصائيات والمواعيد في هذه المعاينة تجريبية. لا يتم إرسال بياناتكِ أو خصم أي مبلغ.",
+    addOnsTitle: "إضافات الجودي سبا",
+    addOnsDescription:
+      "لأن كل تفصيلة تصنع فرقًا في تجربتكِ، أضفنا لكِ خيارات مميزة تمنحكِ المزيد من العناية والدلال، لتصممي تجربتكِ بالطريقة التي تحبينها.",
+    addOns: [
+      "مساج الرأس للاسترخاء: لحظات من الهدوء تساعدكِ على تخفيف التوتر والاستمتاع بالاسترخاء.",
+      "مساج الوجه بالقواشا: عناية لطيفة للوجه باستخدام أداة القواشا وزيت مخصص.",
+      "إضافة تهنئة عيد الميلاد: بالون وبطاقة تهنئة ووردة.",
+    ],
+    addOnPrice:
+      "سعر الإضافة الواحدة ٣٥ ريالًا. مدة إضافات المساج ٢٠ دقيقة، أما تهنئة عيد الميلاد فهي إضافة احتفالية دون مدة مساج. تضاف قيمتها إلى سعر الجلسة الأساسية.",
+    careGuidanceTitle: "إرشادات قبل الجلسة وبعدها",
+    beforeSession: "قبل الجلسة",
+    afterSession: "بعد الجلسة",
+    beforeCare: [
+      "يفضل أن تكون آخر وجبة قبل الجلسة بساعة إلى ساعتين، مع تجنب الوجبات الثقيلة أو الدسمة.",
+      "ينصح بشرب كمية مناسبة من الماء، مع تجنب الإفراط في تناول الكافيين.",
+      "يرجى إبلاغ الأخصائية عن أي إصابة، أو ألم شديد، أو حساسية، أو حمل، أو عملية جراحية حديثة، أو حالة صحية تستدعي التنبيه.",
+      "يرجى تجهيز مساحة مناسبة وهادئة تتيح تقديم الخدمة بكل راحة وخصوصية.",
+    ],
+    afterCare: [
+      "يفضل الانتظار مدة تصل إلى ٦ ساعات قبل الاستحمام، خصوصًا بعد جلسات الزيوت، لمنح البشرة وقتًا للاستفادة منها.",
+      "ينصح بشرب الماء والمحافظة على ترطيب الجسم.",
+      "يفضل تجنب التمارين الشديدة والمجهود البدني مباشرة بعد الجلسة.",
+      "خذي وقتًا كافيًا للراحة والاسترخاء بعد انتهاء الجلسة.",
+    ],
+    viewDetails: "عرض التفاصيل",
+    bookFirst: "احجزي موعدكِ الأول",
+    bookNow: "احجزي الآن",
+  },
+  en: {
+    imagePlaceholder: "Add your image here",
+    branchesCrumb: "Branches / change branch",
+    categoryTitle: "Your moment of care in",
+    categoryDescription: "Choose a session or package, then select your specialist and appointment.",
+    homeService: "At-home care",
+    previewNotice:
+      "Specialists and appointments in this preview are illustrative. Your details are not sent and no payment is taken.",
+    addOnsTitle: "AlJoudi Spa add-ons",
+    addOnsDescription:
+      "Every detail shapes your experience. Choose a personal touch of extra care and pampering.",
+    addOns: [
+      "Relaxing head massage: quiet moments to help ease tension and enjoy relaxation.",
+      "Gua sha face massage: gentle facial care using a gua sha tool and a dedicated oil.",
+      "Birthday greeting: a balloon, greeting card and flower.",
+    ],
+    addOnPrice:
+      "Each add-on costs SAR 35. Massage add-ons last 20 minutes; the birthday greeting is a celebration extra without a massage duration. The cost is added to the base session price.",
+    careGuidanceTitle: "Before and after your session",
+    beforeSession: "Before your session",
+    afterSession: "After your session",
+    beforeCare: [
+      "Preferably have your last meal one to two hours before the session and avoid heavy or fatty meals.",
+      "Drink an appropriate amount of water and avoid excessive caffeine.",
+      "Tell your specialist about any injury, severe pain, allergy, pregnancy, recent surgery or health condition that needs attention.",
+      "Prepare a suitable quiet space where the service can be provided comfortably and privately.",
+    ],
+    afterCare: [
+      "Preferably wait up to six hours before showering, especially after an oil session, to allow time for the skin to benefit.",
+      "Drink water and stay hydrated.",
+      "Avoid intense exercise and physical exertion immediately after the session.",
+      "Allow enough time to rest and relax after your session.",
+    ],
+    viewDetails: "View details",
+    bookFirst: "Book your first session",
+    bookNow: "Book now",
+  },
+} as const;
 
 const languageListeners = new Set<() => void>();
 
@@ -328,10 +523,12 @@ function ImagePlaceholder({
   name,
   label,
   className = "",
+  placeholderOnly = false,
 }: {
   name: ImageName;
   label: string;
   className?: string;
+  placeholderOnly?: boolean;
 }) {
   const source = siteAssets.images[name];
   const isIconArtwork = name === "serviceSkin" || name === "serviceFoot";
@@ -341,7 +538,7 @@ function ImagePlaceholder({
       className={`image-frame${isIconArtwork ? " icon-art-frame" : ""} ${className}`}
       style={name === "welcome" ? { position: "absolute", inset: 0 } : undefined}
     >
-      {source ? (
+      {source && !placeholderOnly ? (
         <Image
           className={`frame-image${isIconArtwork ? " frame-icon-art" : ""}`}
           src={source}
@@ -355,10 +552,19 @@ function ImagePlaceholder({
           }
         />
       ) : (
-        <div className="image-placeholder" role="img" aria-label={label}>
-          <span className="placeholder-orb" />
-          <span className="placeholder-leaf placeholder-leaf-one" />
-          <span className="placeholder-leaf placeholder-leaf-two" />
+        <div
+          className={`image-placeholder${placeholderOnly ? " reference-image-placeholder" : ""}`}
+          role="img"
+          aria-label={label}
+        >
+          {!placeholderOnly && (
+            <>
+              <span className="placeholder-orb" />
+              <span className="placeholder-leaf placeholder-leaf-one" />
+              <span className="placeholder-leaf placeholder-leaf-two" />
+            </>
+          )}
+          {placeholderOnly && <span className="reference-placeholder-mark" aria-hidden="true">+</span>}
           <span className="placeholder-label">{label}</span>
         </div>
       )}
@@ -399,11 +605,327 @@ function Brand({
   );
 }
 
+function JourneyBreadcrumbs({
+  language,
+  branch,
+  productName,
+  onBranchList,
+  onCatalogue,
+}: {
+  language: Language;
+  branch: Branch;
+  productName?: string;
+  onBranchList: () => void;
+  onCatalogue: () => void;
+}) {
+  const copy = journeyCopy[language];
+  const text = translations[language];
+
+  return (
+    <nav className="journey-breadcrumb" aria-label={language === "ar" ? "مسار الصفحة" : "Breadcrumb"}>
+      <button type="button" onClick={onBranchList}>{copy.branchesCrumb}</button>
+      <span aria-hidden="true">/</span>
+      <button type="button" onClick={onCatalogue}>{text.branches[branch]}</button>
+      {productName && (
+        <>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">{productName}</span>
+        </>
+      )}
+    </nav>
+  );
+}
+
+function ProductCareInfo({ language }: { language: Language }) {
+  const copy = journeyCopy[language];
+
+  return (
+    <div className="product-care-info">
+      <details>
+        <summary>{copy.addOnsTitle}</summary>
+        <p>{copy.addOnsDescription}</p>
+        <ul>
+          {copy.addOns.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+        <p>{copy.addOnPrice}</p>
+      </details>
+      <details>
+        <summary>{copy.careGuidanceTitle}</summary>
+        <h3>{copy.beforeSession}</h3>
+        <ul>
+          {copy.beforeCare.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+        <h3>{copy.afterSession}</h3>
+        <ul>
+          {copy.afterCare.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+      </details>
+    </div>
+  );
+}
+
+function LandingPage({
+  language,
+  branch,
+  onBranchChange,
+  onContinue,
+  onLanguageChange,
+}: {
+  language: Language;
+  branch: Branch;
+  onBranchChange: (branch: Branch) => void;
+  onContinue: () => void;
+  onLanguageChange: () => void;
+}) {
+  const copy = landingCopy[language];
+  const text = translations[language];
+  const isArabic = language === "ar";
+  const landingBranches: Branch[] = ["khobar", "riyadh", "jazan"];
+
+  return (
+    <div className="landing-page" dir={isArabic ? "rtl" : "ltr"}>
+      <section className="landing-hero" id="landing-top">
+        <Image
+          className="landing-hero-image"
+          src="/welcome-canva.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+        />
+        <div className="landing-hero-wash" aria-hidden="true" />
+        <header className="landing-header">
+          <button
+            className="landing-language"
+            type="button"
+            onClick={onLanguageChange}
+            aria-label={isArabic ? "Switch language to English" : "تغيير اللغة إلى العربية"}
+          >
+            {text.language}
+          </button>
+          <nav
+            className="landing-nav"
+            dir={isArabic ? "rtl" : "ltr"}
+            aria-label={isArabic ? "القائمة الرئيسية" : "Main navigation"}
+          >
+            <a href="#landing-about">{copy.aboutNav}</a>
+            <a href="#landing-faq">{copy.faqNav}</a>
+            <a href="#landing-contact">{copy.contactNav}</a>
+            <button
+              className="landing-profile-unavailable"
+              type="button"
+              disabled
+              title={text.profileUnavailable}
+            >
+              {text.profile}
+            </button>
+          </nav>
+          <a className="landing-brand" href="#landing-top" aria-label={text.logoAlt}>
+            <Image
+              src="/aljoudi-brand-reference.svg"
+              alt={text.logoAlt}
+              width={590}
+              height={420}
+              priority
+            />
+          </a>
+        </header>
+
+        <div className="landing-hero-content">
+          <Image
+            className="landing-hero-wordmark"
+            src="/aljoudi-brand-reference.svg"
+            alt={text.logoAlt}
+            width={590}
+            height={420}
+          />
+          <h1>{copy.heroTitle}</h1>
+          <p className="landing-hero-description">{copy.heroDescription}</p>
+          <div className="landing-branch-grid" role="group" aria-label={text.chooseBranch}>
+            {landingBranches.map((item) => (
+              <button
+                className={`landing-branch${branch === item ? " selected" : ""}`}
+                key={item}
+                type="button"
+                aria-pressed={branch === item}
+                onClick={() => onBranchChange(item)}
+              >
+                <span>{text.branches[item]}</span>
+                <small>{copy.branchNames[item]}</small>
+                <Icon name="arrow" />
+              </button>
+            ))}
+          </div>
+          <p className="landing-hero-tagline">{copy.heroTagline}</p>
+          <button className="landing-discover" type="button" onClick={onContinue}>
+            {copy.heroAction}
+            <Icon name="arrow" />
+          </button>
+        </div>
+      </section>
+
+      <section className="landing-about" id="landing-about">
+        <div className="landing-section-inner landing-about-layout">
+          <div className="landing-about-copy">
+            <p className="landing-eyebrow">{copy.aboutEyebrow}</p>
+            <h2>{copy.aboutTitle}</h2>
+            {copy.aboutParagraphs.map((paragraph) => (
+              <p className="landing-body-copy" key={paragraph}>{paragraph}</p>
+            ))}
+            <span className="landing-signature">Where Wellness Comes Home</span>
+          </div>
+          <div className="landing-about-photo">
+            <Image
+              src="/aljoudi-about-reference.jpg"
+              alt={copy.aboutImageAlt}
+              fill
+              sizes="(max-width: 760px) 100vw, 50vw"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="landing-experience">
+        <div className="landing-section-inner">
+          <div className="landing-centered-heading">
+            <p className="landing-eyebrow">{copy.experienceEyebrow}</p>
+            <h2>{copy.experienceTitle}</h2>
+          </div>
+          <div className="landing-experience-grid">
+            {copy.experienceItems.map(([title, description], index) => (
+              <article className="landing-experience-card" key={title}>
+                <span className="landing-experience-icon" aria-hidden="true">
+                  <Icon name={index === 0 ? "home" : index === 1 ? "calendar" : "clock"} />
+                </span>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="landing-story">
+        <Image
+          className="landing-story-image"
+          src="/home-hero-canva.png"
+          alt=""
+          fill
+          sizes="100vw"
+        />
+        <div className="landing-story-shade" aria-hidden="true" />
+        <div className="landing-story-content">
+          <Image
+            src="/aljoudi-brand-reference.svg"
+            alt={text.logoAlt}
+            width={590}
+            height={420}
+          />
+          <h2>{copy.storyTitle}</h2>
+          <p>{copy.storyDescription}</p>
+        </div>
+      </section>
+
+      <section className="landing-journey">
+        <div className="landing-section-inner">
+          <div className="landing-journey-heading">
+            <div>
+              <p className="landing-eyebrow">{copy.journeyEyebrow}</p>
+              <h2>{copy.journeyTitle}</h2>
+            </div>
+            <p>{copy.journeyDescription}</p>
+          </div>
+          <div className="landing-journey-grid">
+            {copy.journeyItems.map(([title, description], index) => (
+              <article className="landing-journey-step" key={title}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="landing-faq" id="landing-faq">
+        <div className="landing-section-inner landing-faq-layout">
+          <div className="landing-faq-heading">
+            <p className="landing-eyebrow">{copy.faqEyebrow}</p>
+            <h2>{copy.faqTitle}</h2>
+            <p>{copy.faqDescription}</p>
+          </div>
+          <div className="landing-faq-list">
+            {copy.faqItems.map(([question, answer], index) => (
+              <details key={question} open={index === 0}>
+                <summary>{question}</summary>
+                <p>{answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="landing-contact" id="landing-contact">
+        <p className="landing-eyebrow">{copy.contactEyebrow}</p>
+        <h2>{copy.contactTitle}</h2>
+        <p>{copy.contactDescription}</p>
+        <div className="landing-contact-actions">
+          <a href="#landing-contact" className="landing-contact-primary">{copy.contactAction}</a>
+          <button type="button" onClick={onContinue}>
+            {copy.chooseBranchAction}
+            <Icon name="arrow" />
+          </button>
+        </div>
+      </section>
+
+      <footer className="landing-footer">
+        <div className="landing-footer-top">
+          <div className="landing-footer-brand">
+            <a href="#landing-top" aria-label={text.logoAlt}>
+              <Image
+                src="/aljoudi-brand-reference.svg"
+                alt={text.logoAlt}
+                width={590}
+                height={420}
+              />
+            </a>
+            <p>{copy.footerTagline}</p>
+          </div>
+          <nav className="landing-footer-nav" aria-label={isArabic ? "روابط الصفحة" : "Page links"}>
+            <a href="#landing-about">{copy.aboutNav}</a>
+            <a href="#landing-faq">{copy.faqNav}</a>
+            <a href="#landing-contact">{copy.contactNav}</a>
+            <button type="button" onClick={onContinue}>{isArabic ? "ابدئي الحجز" : "Start booking"}</button>
+          </nav>
+          <div className="landing-social">
+            <h3>{copy.footerFollow}</h3>
+            <div>
+              {copy.socialLinks.map((link) => <span key={link}>{link}</span>)}
+            </div>
+          </div>
+        </div>
+        <div className="landing-footer-bottom">
+          <span>{copy.footerCopyright}</span>
+          <span>{text.branches.khobar} · {text.branches.riyadh} · {text.branches.jazan}</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
 function localDateKey(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function formatPrice(price: number, language: Language) {
+  return new Intl.NumberFormat(language === "ar" ? "ar-SA" : "en-SA", {
+    style: "currency",
+    currency: "SAR",
+    maximumFractionDigits: 0,
+  }).format(price);
 }
 
 export default function Home() {
@@ -416,7 +938,7 @@ export default function Home() {
   const [branch, setBranch] = useState<Branch>("riyadh");
   const [serviceTab, setServiceTab] = useState<ServiceTab>("individual");
   const [specialist, setSpecialist] = useState("sara");
-  const [bookingProduct, setBookingProduct] = useState<BookingProduct>("relaxation");
+  const [bookingProduct, setBookingProduct] = useState<BookingProduct>("calm-package");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [today, setToday] = useState<Date | null>(null);
@@ -424,24 +946,50 @@ export default function Home() {
   const [bookingReady, setBookingReady] = useState(false);
   const text = translations[language];
   const isArabic = language === "ar";
-  const bookingProductName: Record<BookingProduct, string> = {
-    quiet: text.quietPackage,
-    relaxation: text.relaxationPackage,
-    massage: text.serviceMassage,
-    skin: text.serviceSkin,
-    foot: text.serviceFoot,
-  };
-  const bookingProductImage: Record<BookingProduct, ImageName> = {
-    quiet: "packageQuiet",
-    relaxation: "packageRelaxation",
-    massage: "serviceMassage",
-    skin: "serviceSkin",
-    foot: "serviceFoot",
-  };
-  const bookingProductType =
-    bookingProduct === "quiet" || bookingProduct === "relaxation"
-      ? text.packageLabel
-      : text.individualSessions;
+  const formatNumber = (value: number) =>
+    new Intl.NumberFormat(isArabic ? "ar-SA" : "en").format(value);
+  const productEntries = productCatalogue.map((product) => {
+    const count = product.pendingTypes
+      ? `${formatNumber(product.sessions)} ${text.sessions}`
+      : product.repeat
+        ? product.group
+          ? isArabic
+            ? `${formatNumber(product.sessions)} مواعيد للزوجين`
+            : `${formatNumber(product.sessions)} couples appointments`
+          : `${formatNumber(product.sessions)} ${text.sessions}`
+        : product.group
+          ? product.id === "friends"
+            ? isArabic
+              ? "٣ صديقات · قابلة للإضافة"
+              : "3 friends · extra guests available"
+            : isArabic
+              ? "شخصان في موعد واحد"
+              : "Two guests in one booking"
+          : text.individualSession;
+    const duration = product.pendingTypes
+      ? isArabic
+        ? "حسب نوع المساج المختار"
+        : "Depends on the selected massage"
+      : `${formatNumber(product.minutes)} ${isArabic ? "دقيقة" : "minutes"}${product.group ? (isArabic ? " لكل شخص" : " per guest") : ""}`;
+
+    return {
+      ...product,
+      title: product.name[language],
+      description: product.description[language],
+      facts: product.facts[language],
+      count,
+      duration,
+      priceLabel: formatPrice(product.price, language),
+    };
+  });
+  const availableProducts = productEntries.filter(
+    (product) => !product.riyadhOnly || branch === "riyadh",
+  );
+  const serviceEntries = availableProducts.filter((product) => product.kind === "service");
+  const packageEntries = availableProducts.filter((product) => product.kind === "package");
+  const selectedProduct = productEntries.find((product) => product.id === bookingProduct);
+  const selectedPackage = packageEntries.find((item) => item.id === bookingProduct);
+  const selectedService = serviceEntries.find((item) => item.id === bookingProduct);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -504,45 +1052,20 @@ export default function Home() {
     );
   }
 
-  const serviceEntries = [
-    {
-      image: "serviceMassage" as const,
-      title: text.serviceMassage,
-      kind: "individual" as const,
-    },
-    {
-      image: "serviceSkin" as const,
-      title: text.serviceSkin,
-      kind: "individual" as const,
-    },
-    {
-      image: "serviceFoot" as const,
-      title: text.serviceFoot,
-      kind: "individual" as const,
-    },
-  ];
-
-  const packageEntries = [
-    {
-      id: "quiet" as const,
-      image: "packageQuiet" as const,
-      title: text.quietPackage,
-      count: text.sessionsThree,
-    },
-    {
-      id: "relaxation" as const,
-      image: "packageRelaxation" as const,
-      title: text.relaxationPackage,
-      count: text.ninetyMinutes,
-    },
-  ];
-
   return (
-    <main className="app-shell" dir={isArabic ? "rtl" : "ltr"}>
-      <header className={`site-header${screen === "welcome" ? " welcome-header" : ""}`}>
+    <main
+      className={`app-shell${screen === "welcome" ? " landing-shell" : ""}`}
+      dir={isArabic ? "rtl" : "ltr"}
+    >
+      {screen !== "welcome" && (
+      <header className="site-header">
         <Brand language={language} onClick={() => navigate("home")} />
 
-        <nav className="main-nav" aria-label={isArabic ? "التنقل الرئيسي" : "Main navigation"}>
+        <nav
+          className="main-nav"
+          dir={isArabic ? "rtl" : "ltr"}
+          aria-label={isArabic ? "التنقل الرئيسي" : "Main navigation"}
+        >
           <button
             className={`nav-link${screen === "home" ? " active" : ""}`}
             type="button"
@@ -551,7 +1074,7 @@ export default function Home() {
             {text.home}
           </button>
           <button
-            className={`nav-link${screen === "services" ? " active" : ""}`}
+            className={`nav-link${screen === "services" || screen === "service" ? " active" : ""}`}
             type="button"
             onClick={() => {
               setServiceTab("individual");
@@ -577,9 +1100,17 @@ export default function Home() {
           >
             {text.bookings}
           </button>
+          <button
+            className="nav-link nav-link-unavailable"
+            type="button"
+            disabled
+            title={text.profileUnavailable}
+          >
+            {text.profile}
+          </button>
         </nav>
 
-        <div className="header-actions">
+        <div className="header-actions" dir={isArabic ? "rtl" : "ltr"}>
           <button
             className="header-branch"
             type="button"
@@ -605,65 +1136,16 @@ export default function Home() {
           </span>
         </div>
       </header>
+      )}
 
       {screen === "welcome" && (
-        <section className="welcome-screen">
-          <div className="welcome-grid">
-            <div className="welcome-visual">
-              {siteAssets.welcomeVideo ? (
-                <video
-                  className="welcome-video"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="metadata"
-                  aria-label={isArabic ? "فيديو جود سبا" : "Joud Spa animation"}
-                >
-                  <source src={siteAssets.welcomeVideo} type="video/mp4" />
-                </video>
-              ) : (
-                <ImagePlaceholder
-                  name="welcome"
-                  label={text.photoPlaceholder}
-                  className="welcome-image-placeholder"
-                />
-              )}
-            </div>
-
-            <div className="welcome-copy">
-              <p className="eyebrow">
-                <span className="eyebrow-line" />
-                {text.welcomeEyebrow}
-              </p>
-              <h1>{text.welcomeTitle}</h1>
-              <p className="welcome-subtitle">{text.welcomeSubtitle}</p>
-              <p className="welcome-description">{text.welcomeDescription}</p>
-
-              <div className="branch-select">
-                <p className="field-label">{text.chooseBranchHint}</p>
-                <div className="branch-options" role="group" aria-label={text.chooseBranch}>
-                  {branches.map((item) => (
-                    <button
-                      className={`branch-option${branch === item ? " selected" : ""}`}
-                      key={item}
-                      type="button"
-                      aria-pressed={branch === item}
-                      onClick={() => setBranch(item)}
-                    >
-                      {text.branches[item]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button className="button button-primary welcome-cta" onClick={() => navigate("home")}>
-                <span>{text.continue}</span>
-                <Icon name="arrow" />
-              </button>
-            </div>
-          </div>
-        </section>
+        <LandingPage
+          language={language}
+          branch={branch}
+          onBranchChange={setBranch}
+          onContinue={() => navigate("home")}
+          onLanguageChange={changeLanguage}
+        />
       )}
 
       {screen === "home" && (
@@ -754,17 +1236,24 @@ export default function Home() {
 
       {screen === "services" && (
         <section className="page-section services-screen">
-          <div className="page-heading">
-            <p className="eyebrow">
-              <span className="eyebrow-line" />
-              {text.servicesEyebrow}
-            </p>
-            <h1>{text.servicesTitle}</h1>
-            <div className="service-tabs" role="tablist">
+          <JourneyBreadcrumbs
+            language={language}
+            branch={branch}
+            onBranchList={() => navigate("welcome")}
+            onCatalogue={() => navigate("services")}
+          />
+          <div className="page-heading journey-page-heading">
+            <h1>
+              {journeyCopy[language].categoryTitle} {text.branches[branch]}
+            </h1>
+            <p>{journeyCopy[language].categoryDescription}</p>
+            <div className="service-tabs journey-tabs" role="tablist" aria-label={text.services}>
               <button
                 className={`service-tab${serviceTab === "individual" ? " active" : ""}`}
                 type="button"
                 role="tab"
+                id="individual-tab"
+                aria-controls="individual-panel"
                 aria-selected={serviceTab === "individual"}
                 onClick={() => setServiceTab("individual")}
               >
@@ -774,6 +1263,8 @@ export default function Home() {
                 className={`service-tab${serviceTab === "packages" ? " active" : ""}`}
                 type="button"
                 role="tab"
+                id="packages-tab"
+                aria-controls="packages-panel"
                 aria-selected={serviceTab === "packages"}
                 onClick={() => setServiceTab("packages")}
               >
@@ -783,35 +1274,41 @@ export default function Home() {
           </div>
 
           {serviceTab === "individual" ? (
-            <div className="catalog-grid">
+            <div
+              className="reference-product-grid"
+              id="individual-panel"
+              role="tabpanel"
+              aria-labelledby="individual-tab"
+            >
               {serviceEntries.map((service) => (
-                <article className="catalog-card" key={service.image}>
+                <article className="reference-product-card" key={service.id}>
                   <ImagePlaceholder
                     name={service.image}
-                    label={text.photoPlaceholder}
-                    className="catalog-visual"
+                    label={journeyCopy[language].imagePlaceholder}
+                    className="reference-product-image"
+                    placeholderOnly
                   />
-                  <div className="catalog-info">
-                    <div>
-                      <p className="catalog-kicker">{text.individualSessions}</p>
-                      <h2>{service.title}</h2>
-                      <p className="catalog-price">{text.priceLater}</p>
+                  <div className="reference-product-info">
+                    <span className="reference-product-tag">{service.count}</span>
+                    <h2>{service.title}</h2>
+                    <p>{service.description}</p>
+                    <div className="reference-product-facts">
+                      <span><Icon name="clock" />{service.duration}</span>
+                      <span><Icon name="location" />{journeyCopy[language].homeService}</span>
+                    </div>
+                    <div className="reference-product-meta">
+                      <strong>{service.priceLabel}</strong>
+                      <span>{text.individualSession}</span>
                     </div>
                     <button
-                      className="button button-outline"
+                      className="button button-primary reference-product-cta"
                       type="button"
                       onClick={() => {
-                        setBookingProduct(
-                          service.image === "serviceMassage"
-                            ? "massage"
-                            : service.image === "serviceSkin"
-                              ? "skin"
-                              : "foot",
-                        );
-                        navigate("booking");
+                        setBookingProduct(service.id);
+                        navigate("service");
                       }}
                     >
-                      {text.bookSession}
+                      {journeyCopy[language].viewDetails}
                       <Icon name="arrow" />
                     </button>
                   </div>
@@ -819,30 +1316,41 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <div className="catalog-grid package-grid">
+            <div
+              className="reference-product-grid package-grid"
+              id="packages-panel"
+              role="tabpanel"
+              aria-labelledby="packages-tab"
+            >
               {packageEntries.map((item) => (
-                <article className="catalog-card" key={item.image}>
+                <article className="reference-product-card" key={item.id}>
                   <ImagePlaceholder
                     name={item.image}
-                    label={text.photoPlaceholder}
-                    className="catalog-visual"
+                    label={journeyCopy[language].imagePlaceholder}
+                    className="reference-product-image"
+                    placeholderOnly
                   />
-                  <div className="catalog-info">
-                    <div>
-                      <p className="catalog-kicker">{text.packagesTab}</p>
-                      <h2>{item.title}</h2>
-                      <p className="catalog-subline">{item.count}</p>
-                      <p className="catalog-price">{text.priceLater}</p>
+                  <div className="reference-product-info">
+                    <span className="reference-product-tag">{item.count}</span>
+                    <h2>{item.title}</h2>
+                    <p>{item.description}</p>
+                    <div className="reference-product-facts">
+                      <span><Icon name="clock" />{item.duration}</span>
+                      <span><Icon name="location" />{journeyCopy[language].homeService}</span>
+                    </div>
+                    <div className="reference-product-meta">
+                      <strong>{item.priceLabel}</strong>
+                      <span>{text.packageLabel}</span>
                     </div>
                     <button
-                      className="button button-outline"
+                      className="button button-primary reference-product-cta"
                       type="button"
                       onClick={() => {
                         setBookingProduct(item.id);
                         navigate("package");
                       }}
                     >
-                      {text.details}
+                      {journeyCopy[language].viewDetails}
                       <Icon name="arrow" />
                     </button>
                   </div>
@@ -850,71 +1358,114 @@ export default function Home() {
               ))}
             </div>
           )}
+          <p className="journey-preview-notice">
+            <Icon name="lock" />
+            {journeyCopy[language].previewNotice}
+          </p>
         </section>
       )}
 
-      {screen === "package" && (
+      {screen === "package" && selectedPackage && (
         <section className="page-section package-screen">
-          <div className="package-feature">
+          <JourneyBreadcrumbs
+            language={language}
+            branch={branch}
+            productName={selectedPackage.title}
+            onBranchList={() => navigate("welcome")}
+            onCatalogue={() => {
+              setServiceTab("packages");
+              navigate("services");
+            }}
+          />
+          <div className="package-feature reference-detail-layout">
             <ImagePlaceholder
-              name="packageQuiet"
-              label={text.photoPlaceholder}
-              className="package-photo"
+              name={selectedPackage.image}
+              label={journeyCopy[language].imagePlaceholder}
+              className="package-photo reference-detail-photo"
+              placeholderOnly
             />
-            <div className="package-content">
-              <p className="eyebrow">
-                <span className="eyebrow-line" />
-                {text.packageEyebrow}
-              </p>
-              <h1>
-                {bookingProduct === "quiet" ? text.quietPackage : text.relaxationPackage}
-              </h1>
-              <p className="package-description">{text.packageDescription}</p>
-              <h2 className="included-heading">{text.includedServices}</h2>
+            <div className="package-content reference-detail-content">
+              <span className="reference-product-tag">{selectedPackage.count}</span>
+              <h1>{selectedPackage.title}</h1>
+              <p className="package-description">{selectedPackage.description}</p>
+              <h2 className="included-heading">{text.productDetails}</h2>
               <ul className="included-list">
-                {[text.serviceMassage, text.serviceSkin, text.serviceFoot, text.serviceHospitality].map(
-                  (service) => (
-                    <li key={service}>
-                      <Icon name="check" />
-                      {service}
-                    </li>
-                  ),
-                )}
+                {selectedPackage.facts.map((fact) => (
+                  <li key={fact}>
+                    <Icon name="check" />
+                    {fact}
+                  </li>
+                ))}
               </ul>
-              <div className="package-facts">
-                <div>
-                  <strong>
-                    {bookingProduct === "quiet" ? text.sessionsThree : text.unknownSessions}
-                  </strong>
-                  <span>{text.sessionCount}</span>
-                </div>
-                <div>
-                  <strong>
-                    {bookingProduct === "quiet" ? text.sixtyMinutes : text.ninetyMinutes}
-                  </strong>
-                  <span>{text.sessionDuration}</span>
-                </div>
-                <div>
-                  <strong>
-                    {bookingProduct === "quiet" ? text.thirtyDays : text.unknownValidity}
-                  </strong>
-                  <span>{text.packageValidity}</span>
-                </div>
-                <div>
-                  <strong>{text.priceLater}</strong>
-                  <span>{text.price}</span>
-                </div>
+              <div className="reference-detail-price">
+                <span>{text.price}</span>
+                <strong>{selectedPackage.priceLabel}</strong>
               </div>
-              <p className="package-notice">
-                <Icon name="lock" />
-                {text.packageNotice}
-              </p>
-              <button className="button button-primary package-cta" onClick={() => navigate("booking")}>
-                {text.bookPackage}
+              <button
+                className="button button-primary package-cta"
+                type="button"
+                onClick={() => navigate("booking")}
+              >
+                {journeyCopy[language].bookFirst}
                 <Icon name="arrow" />
               </button>
             </div>
           </div>
+          <ProductCareInfo language={language} />
+          <p className="journey-preview-notice">
+            <Icon name="lock" />
+            {journeyCopy[language].previewNotice}
+          </p>
+        </section>
+      )}
+
+      {screen === "service" && selectedService && (
+        <section className="page-section package-screen product-details-screen">
+          <JourneyBreadcrumbs
+            language={language}
+            branch={branch}
+            productName={selectedService.title}
+            onBranchList={() => navigate("welcome")}
+            onCatalogue={() => {
+              setServiceTab("individual");
+              navigate("services");
+            }}
+          />
+          <div className="package-feature reference-detail-layout">
+            <ImagePlaceholder
+              name={selectedService.image}
+              label={journeyCopy[language].imagePlaceholder}
+              className="package-photo reference-detail-photo"
+              placeholderOnly
+            />
+            <div className="package-content reference-detail-content">
+              <span className="reference-product-tag">{selectedService.count}</span>
+              <h1>{selectedService.title}</h1>
+              <p className="package-description">{selectedService.description}</p>
+              <ul className="reference-detail-facts">
+                {selectedService.facts.map((fact) => (
+                  <li key={fact}><Icon name="check" />{fact}</li>
+                ))}
+              </ul>
+              <div className="reference-detail-price">
+                <span>{text.price}</span>
+                <strong>{selectedService.priceLabel}</strong>
+              </div>
+              <button
+                className="button button-primary package-cta"
+                type="button"
+                onClick={() => navigate("booking")}
+              >
+                {journeyCopy[language].bookNow}
+                <Icon name="arrow" />
+              </button>
+            </div>
+          </div>
+          <ProductCareInfo language={language} />
+          <p className="journey-preview-notice">
+            <Icon name="lock" />
+            {journeyCopy[language].previewNotice}
+          </p>
         </section>
       )}
 
@@ -1080,24 +1631,25 @@ export default function Home() {
 
             <aside className="booking-summary">
               <p className="summary-eyebrow">{text.bookingSummaryTitle}</p>
-              <div className="summary-package">
-                <ImagePlaceholder
-                  name={bookingProductImage[bookingProduct]}
-                  label={text.photoPlaceholder}
-                  className="summary-photo"
-                />
-                <div>
-                  <span>{bookingProductType}</span>
-                  <strong>{bookingProductName[bookingProduct]}</strong>
-                  <small>
-                    {bookingProduct === "quiet"
-                      ? text.sixtyMinutes
-                      : bookingProduct === "relaxation"
-                        ? text.durationNinety
-                        : text.individualSession}
-                  </small>
+              {selectedProduct && (
+                <div className="summary-package">
+                  <ImagePlaceholder
+                    name={selectedProduct.image}
+                    label={text.photoPlaceholder}
+                    className="summary-photo"
+                    placeholderOnly
+                  />
+                  <div>
+                    <span>
+                      {selectedProduct.kind === "package"
+                        ? text.packageLabel
+                        : text.individualSessions}
+                    </span>
+                    <strong>{selectedProduct.title}</strong>
+                    <small>{selectedProduct.count} · {selectedProduct.duration}</small>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="summary-row">
                 <span>{text.specialistLabel}</span>
                 <strong>
@@ -1122,10 +1674,12 @@ export default function Home() {
                   <strong>{selectedTime}</strong>
                 </div>
               )}
-              <div className="summary-price">
-                <span>{text.price}</span>
-                <strong>{text.priceLater}</strong>
-              </div>
+              {selectedProduct && (
+                <div className="summary-price">
+                  <span>{text.price}</span>
+                  <strong>{selectedProduct.priceLabel}</strong>
+                </div>
+              )}
               <button
                 className="button button-primary summary-cta"
                 type="button"
