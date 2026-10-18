@@ -1,12 +1,12 @@
-# Joud Spa
+# AlJoudi Spa
 
-An Arabic-first, responsive website experience for Joud Spa, with an English-language option. The interface is based on the shared Canva design and introduces visitors to the spa, its treatments and packages, and an appointment-booking flow.
+An Arabic-first, responsive website experience for AlJoudi Spa (الجودي سبا), with an English-language option. The interface is based on the shared Canva design and introduces visitors to the spa, its treatments and packages, and an appointment-booking flow.
 
 > **Project status:** This repository contains a front-end prototype. Booking selections and availability are demonstration UI only; there is no booking API, payment processing, or persistent customer data.
 
 ## Design reference
 
-The visual direction is based on the [Joud Spa Canva design](https://www.canva.com/design/DAHYGBJ2drk/TBgz56UviuG52rMOBfmGDA/view).
+The visual direction is based on the [AlJoudi Spa Canva design](https://www.canva.com/design/DAHYGBJ2drk/TBgz56UviuG52rMOBfmGDA/view).
 
 ## Features
 
@@ -79,7 +79,8 @@ Add approved image files to `public/`, then update the corresponding path in [`s
 Use root-relative public paths, for example:
 
 ```ts
-logo: "/joud-logo.png",
+logo: "/aljoudi-brand-reference.svg",
+logoMark: "/aljoudi-mark.png",
 images: {
   welcome: "/welcome-canva.png",
   home: "/home-hero-canva.png",

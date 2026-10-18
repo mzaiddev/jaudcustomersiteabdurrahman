@@ -23,14 +23,14 @@ const translations = {
     profileUnavailable: "لا يتوفر مسار للملف الشخصي حالياً",
     location: "الفرع",
     language: "English",
-    welcomeEyebrow: "جود سبا · عناية واسترخاء",
+    welcomeEyebrow: "الجودي سبا · عناية واسترخاء",
     welcomeTitle: "لحظة هدوء... تبدأ من هنا",
     welcomeSubtitle: "العناية أقرب إليك",
-    welcomeDescription: "اختاري فرعك، ودعي تجربة جود سبا تأتي إليك في راحة منزلك.",
+    welcomeDescription: "اختاري فرعك، ودعي تجربة الجودي سبا تأتي إليك في راحة منزلك.",
     chooseBranch: "اختاري فرعك",
     chooseBranchHint: "اختاري الفرع الأقرب إليك",
-    continue: "اكتشفي تجربة جود",
-    homeEyebrow: "أهلاً بكِ في جود سبا",
+    continue: "اكتشفي تجربة الجودي",
+    homeEyebrow: "أهلاً بكِ في الجودي سبا",
     homeTitle: "لحظة عناية، في راحة منزلكِ",
     homeDescription: "اكتشفي جلسات العناية والباقات المناسبة لكِ.",
     exploreServices: "اكتشفي الخدمات",
@@ -99,7 +99,7 @@ const translations = {
     branchHint: "العناية أقرب إليكِ في",
     footerLine: "عناية هادئة، أينما كنتِ.",
     photoPlaceholder: "أضيفي الصورة هنا",
-    logoAlt: "شعار جود سبا",
+    logoAlt: "شعار الجودي سبا",
     noDate: "اختاري تاريخاً متاحاً",
     weekdays: ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"],
     branches: {
@@ -117,15 +117,15 @@ const translations = {
     profileUnavailable: "The profile page is not available yet",
     location: "Branch",
     language: "العربية",
-    welcomeEyebrow: "JOUD SPA · CARE & WELLNESS",
+    welcomeEyebrow: "ALJOUDI SPA · CARE & WELLNESS",
     welcomeTitle: "A moment of calm begins here",
     welcomeSubtitle: "Care, closer to you",
     welcomeDescription:
-      "Choose your branch and let the Joud Spa experience come to you, in the comfort of your home.",
+      "Choose your branch and let the AlJoudi Spa experience come to you, in the comfort of your home.",
     chooseBranch: "Choose your branch",
     chooseBranchHint: "Choose the branch closest to you",
-    continue: "Discover the Joud experience",
-    homeEyebrow: "WELCOME TO JOUD SPA",
+    continue: "Discover the AlJoudi experience",
+    homeEyebrow: "WELCOME TO ALJOUDI SPA",
     homeTitle: "A moment of care, in the comfort of home",
     homeDescription:
       "Discover thoughtfully chosen treatments and packages, made to fit your needs.",
@@ -195,7 +195,7 @@ const translations = {
     branchHint: "Thoughtful care in",
     footerLine: "A quieter kind of care, wherever you are.",
     photoPlaceholder: "Add your photo here",
-    logoAlt: "Joud Spa logo",
+    logoAlt: "AlJoudi Spa logo",
     noDate: "Choose an available date",
     weekdays: ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"],
     branches: {
@@ -214,7 +214,7 @@ const landingCopy = {
     heroTitle: "لحظة العناية تبدأ من هنا",
     heroDescription: "اختاري فرعكِ، واكتشفي الجلسات والباقات المتاحة لكِ.",
     heroTagline: "العناية والرفاهية، في راحة منزلكِ",
-    heroAction: "تعرّفي على الجودي سبا",
+    heroAction: "ابدأي رحلتك ",
     branchNames: { riyadh: "RIYADH", jazan: "JAZAN", khobar: "AL KHOBAR" },
     aboutEyebrow: "عن الجودي سبا",
     aboutTitle: "مساحة من الهدوء، تأتي إليكِ",
@@ -245,7 +245,7 @@ const landingCopy = {
     faqTitle: "أسئلتكِ، بكل وضوح",
     faqDescription: "إجابات تساعدكِ على بدء تجربتكِ.",
     faqItems: [
-      ["ما هي الجودي سبا؟", "الجودي سبا تقدّم جلسات عناية ورفاهية في المنزل. اختاري فرعكِ للتعرّف على الخدمات والباقات المتاحة."],
+      ["ما هو الجودي سبا؟", "الجودي سبا تقدّم جلسات عناية ورفاهية في المنزل. اختاري فرعكِ للتعرّف على الخدمات والباقات المتاحة."],
       ["كيف أبدأ الحجز؟", "من أعلى الصفحة اختاري الفرع، ثم الخدمة أو الباقة، والأخصائية والموعد المتاح. بعد إدخال عنوان الزيارة وإتمام الدفع يتم تأكيد الحجز."],
       ["أين تتوفر الخدمة؟", "تتوفر الخدمة في فروع الرياض وجازان والخبر. اختاري فرعكِ للتعرّف على الخدمات المتاحة."],
       ["هل أختار الأخصائية عند الحجز؟", "نعم، يمكنكِ اختيار الأخصائية والموعد المتاح أثناء الحجز."],
@@ -269,7 +269,7 @@ const landingCopy = {
     heroTitle: "Your moment of care starts here",
     heroDescription: "Choose your branch and explore the sessions and packages available to you.",
     heroTagline: "Care and wellness, in the comfort of home",
-    heroAction: "Discover AlJoudi",
+    heroAction: "start your journey",
     branchNames: { riyadh: "RIYADH", jazan: "JAZAN", khobar: "AL KHOBAR" },
     aboutEyebrow: "About AlJoudi",
     aboutTitle: "A space for calm, brought to you",
@@ -582,7 +582,7 @@ function Brand({
   const isArabic = language === "ar";
 
   return (
-    <button className="brand" type="button" onClick={onClick}>
+    <button className="brand brand-with-logo" type="button" onClick={onClick}>
       {siteAssets.logo ? (
         <Image
           className="brand-logo-image"
@@ -597,11 +597,29 @@ function Brand({
             <span />
             <span />
           </span>
-          <span className="brand-name">{isArabic ? "جود" : "Joud"}</span>
+          <span className="brand-name">
+            {isArabic ? "الجودي سبا" : "AlJoudi Spa"}
+          </span>
           <span className="brand-caption">SPA · WELLNESS</span>
         </>
       )}
     </button>
+  );
+}
+
+function DevelopmentBrand({ language }: { language: Language }) {
+  if (process.env.NODE_ENV !== "development") {
+    return null;
+  }
+
+  return (
+    <div
+      className="development-brand"
+      role="img"
+      aria-label={translations[language].logoAlt}
+    >
+      <Image src={siteAssets.logoMark} alt="" width={164} height={112} />
+    </div>
   );
 }
 
@@ -722,10 +740,10 @@ function LandingPage({
           </nav>
           <a className="landing-brand" href="#landing-top" aria-label={text.logoAlt}>
             <Image
-              src="/aljoudi-brand-reference.svg"
+              src={siteAssets.logoMark}
               alt={text.logoAlt}
-              width={590}
-              height={420}
+              width={164}
+              height={112}
               priority
             />
           </a>
@@ -734,7 +752,7 @@ function LandingPage({
         <div className="landing-hero-content">
           <Image
             className="landing-hero-wordmark"
-            src="/aljoudi-brand-reference.svg"
+            src={siteAssets.logo}
             alt={text.logoAlt}
             width={590}
             height={420}
@@ -816,7 +834,7 @@ function LandingPage({
         <div className="landing-story-shade" aria-hidden="true" />
         <div className="landing-story-content">
           <Image
-            src="/aljoudi-brand-reference.svg"
+            src={siteAssets.logo}
             alt={text.logoAlt}
             width={590}
             height={420}
@@ -883,7 +901,7 @@ function LandingPage({
           <div className="landing-footer-brand">
             <a href="#landing-top" aria-label={text.logoAlt}>
               <Image
-                src="/aljoudi-brand-reference.svg"
+                src={siteAssets.logo}
                 alt={text.logoAlt}
                 width={590}
                 height={420}
@@ -1712,7 +1730,7 @@ export default function Home() {
         <footer className="site-footer">
           <Brand language={language} onClick={() => navigate("home")} />
           <span className="footer-message">{text.footerLine}</span>
-          <span className="copyright">© JOUD SPA</span>
+          <span className="copyright">© ALJOUDI SPA</span>
           <div className="footer-links">
             <button type="button" onClick={() => navigate("home")}>{text.home}</button>
             <button type="button" onClick={() => navigate("services")}>{text.services}</button>
@@ -1720,6 +1738,7 @@ export default function Home() {
           </div>
         </footer>
       )}
+      <DevelopmentBrand language={language} />
     </main>
   );
 }

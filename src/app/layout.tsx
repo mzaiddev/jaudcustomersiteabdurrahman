@@ -21,9 +21,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "جود سبا | Joud Spa",
+  title: "الجودي سبا | AlJoudi Spa",
   description:
-    "لحظة هدوء... تبدأ من هنا. اكتشفي تجربة جود سبا للعناية والاسترخاء. A moment of calm begins here. Discover Joud Spa care and relaxation.",
+    "لحظة هدوء... تبدأ من هنا. اكتشفي تجربة الجودي سبا للعناية والاسترخاء. A moment of calm begins here. Discover AlJoudi Spa care and relaxation.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

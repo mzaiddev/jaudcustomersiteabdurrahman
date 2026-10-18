@@ -1,5 +1,6 @@
 export const siteAssets: {
   logo: string;
+  logoMark: string;
   welcomeVideo: string;
   icons: Record<
     | "arrow"
@@ -32,7 +33,8 @@ export const siteAssets: {
     string
   >;
 } = {
-  logo: "/joud-logo.png",
+  logo: "/aljoudi-brand-reference.svg",
+  logoMark: "/aljoudi-mark.png",
   welcomeVideo: "",
   icons: {
     arrow: "",
