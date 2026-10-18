@@ -358,3 +358,23 @@ export const productCatalogue: Product[] = [
     },
   },
 ];
+
+/** Related photo for each service and package. */
+export const productPhotos: Record<ProductId, string> = {
+  detox: "/products/p7.webp",
+  aljoudi: "/products/p8.webp",
+  postpartum: "/products/p9.webp",
+  "gym-recovery": "/products/p11.webp",
+  "calm-massage": "/products/p6.webp",
+  "hot-stone": "/products/p8.webp",
+  cupping: "/products/p8.webp",
+  bridal: "/products/p10.webp",
+  "luxury-wellness": "/products/p2.webp",
+  love: "/products/p3.webp",
+  "queen-mom": "/products/p1.webp",
+  "calm-package": "/products/p6.webp",
+  partner: "/products/p4.webp",
+  friends: "/products/p5.webp",
+  "vip-detox": "/products/p7.webp",
+  "vip-detox-package": "/products/p7.webp",
+};

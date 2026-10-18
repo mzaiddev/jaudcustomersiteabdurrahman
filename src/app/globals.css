@@ -3312,3 +3312,177 @@ button:disabled {
     margin-top: 30px;
   }
 }
+
+/* Routing: links styled like the previous buttons */
+.nav-link,
+.footer-links a,
+.header-branch,
+.journey-breadcrumb a,
+.text-link,
+.discover-card,
+.service-tab,
+.landing-branch,
+.landing-contact-actions a,
+.landing-footer-nav a,
+.brand,
+.button {
+  text-decoration: none;
+}
+
+.footer-links a {
+  padding: 5px 0;
+  color: #77796f;
+  font-size: 10px;
+}
+
+.footer-links a:hover {
+  color: var(--green);
+}
+
+.journey-breadcrumb a {
+  padding: 4px 0;
+  border-bottom: 1px solid rgb(44 95 45 / 34%);
+  color: var(--green);
+  font: inherit;
+}
+
+.landing-hero-video {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 43%;
+}
+
+.landing-brand .brand-logo-image,
+.landing-footer-brand .brand-logo-image {
+  width: 100%;
+  height: auto;
+}
+
+.landing-brand {
+  width: 120px;
+}
+
+.landing-footer-brand a,
+.landing-footer-brand .brand-logo-image {
+  max-width: 150px;
+}
+
+.home-visual .frame-image {
+  opacity: 1;
+  object-position: center 40%;
+}
+
+.specialist-logo {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #fbfaf6;
+}
+
+.specialist-logo img {
+  width: 78%;
+  height: auto;
+}
+
+.saved-bookings {
+  margin-top: 40px;
+}
+
+.saved-bookings h2 {
+  margin: 0 0 14px;
+  font-size: 20px;
+}
+
+.saved-bookings ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.saved-bookings li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border: 1px solid #e5e7dd;
+  border-radius: 6px;
+  background: #fbfaf6;
+}
+
+.saved-bookings li div {
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+  color: #77796f;
+}
+
+.saved-bookings li strong {
+  color: var(--green);
+  font-size: 14px;
+}
+
+.saved-bookings li button {
+  padding: 6px 12px;
+  border: 1px solid #c9cfc0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+canvas.landing-story-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  filter: none;
+}
+
+/* Home hero: HD petal photograph. The petals sit on the left of the frame and
+   the right side fades to white, so the copy lives on that soft side. */
+.home-visual .frame-image {
+  object-position: left center;
+}
+
+.home-hero::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgb(253 251 247 / 0%) 35%,
+    rgb(253 251 247 / 55%) 62%,
+    rgb(253 251 247 / 80%) 100%
+  );
+  content: "";
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .home-visual .frame-image {
+    object-position: 30% center;
+  }
+
+  .home-hero .home-copy {
+    padding-top: 200px;
+  }
+
+  .home-hero::after {
+    background: linear-gradient(
+      to bottom,
+      rgb(253 251 247 / 0%) 0%,
+      rgb(253 251 247 / 0%) 30%,
+      rgb(253 251 247 / 88%) 52%,
+      rgb(253 251 247 / 94%) 100%
+    );
+  }
+}

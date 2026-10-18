@@ -35,7 +35,7 @@ export const siteAssets: {
 } = {
   logo: "/aljoudi-brand-reference.svg",
   logoMark: "/aljoudi-mark.png",
-  welcomeVideo: "",
+  welcomeVideo: "/joud-spa-silk.mp4",
   icons: {
     arrow: "",
     calendar: "",
@@ -52,7 +52,7 @@ export const siteAssets: {
   },
   images: {
     welcome: "/welcome-canva.png",
-    home: "/home-hero-canva.png",
+    home: "/home-hero-petals.webp",
     individualSessions: "/ss.png",
     carePackages: "/packpic.png",
     serviceMassage: "/service-massage-canva.png",
