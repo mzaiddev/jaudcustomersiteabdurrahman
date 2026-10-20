@@ -2054,6 +2054,14 @@ button:disabled {
   font-size: clamp(27px, 3vw, 36px);
 }
 
+.landing-hero-slogan {
+  margin: 10px 0 6px;
+  color: #2c5f2d;
+  font-size: clamp(18px, 2vw, 23px);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
 .landing-hero-description {
   margin: 8px auto 0;
   color: #425742;
@@ -2531,12 +2539,20 @@ button:disabled {
   gap: 8px;
 }
 
-.landing-social span {
+.landing-social a {
   padding: 8px 11px;
   border: 1px solid rgb(253 251 247 / 27%);
   border-radius: 4px;
   color: #e2e9dc;
   font-size: 11px;
+  text-decoration: none;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.landing-social a:hover,
+.landing-social a:focus-visible {
+  border-color: rgb(253 251 247 / 70%);
+  color: #fdfbf7;
 }
 
 .landing-footer-bottom {

@@ -1,5 +1,6 @@
 import { siteAssets } from "./site-assets";
 import type { ProductId } from "./product-catalogue";
+import { ADD_ONS } from "./rules";
 
 export type Language = "ar" | "en";
 export type Branch = "riyadh" | "jazan" | "khobar";
@@ -20,17 +21,16 @@ export const translations = {
     packages: "الباقات",
     bookings: "حجوزاتي",
     profile: "الملف الشخصي",
-    profileUnavailable: "لا يتوفر مسار للملف الشخصي حالياً",
     location: "الفرع",
     language: "English",
-    welcomeEyebrow: "الجودي سبا · عناية واسترخاء",
+    welcomeEyebrow: "AlJoudi Wellness Spa · عناية واسترخاء",
     welcomeTitle: "لحظة هدوء... تبدأ من هنا",
     welcomeSubtitle: "العناية أقرب إليك",
-    welcomeDescription: "اختاري فرعك، ودعي تجربة الجودي سبا تأتي إليك في راحة منزلك.",
+    welcomeDescription: "اختاري فرعك، ودعي تجربة AlJoudi Wellness Spa تأتي إليك في راحة منزلك.",
     chooseBranch: "اختاري فرعك",
     chooseBranchHint: "اختاري الفرع الأقرب إليك",
-    continue: "اكتشفي تجربة الجودي",
-    homeEyebrow: "أهلاً بكِ في الجودي سبا",
+    continue: "اكتشفي تجربة AlJoudi",
+    homeEyebrow: "أهلاً بكِ في AlJoudi Wellness Spa",
     homeTitle: "لحظة عناية، في راحة منزلكِ",
     homeDescription: "اكتشفي جلسات العناية والباقات المناسبة لكِ.",
     exploreServices: "اكتشفي الخدمات",
@@ -98,8 +98,10 @@ export const translations = {
       "تم حفظ اختياراتك لهذه الجلسة. أكّدي الحجز بعد ربط بوابة الدفع.",
     branchHint: "العناية أقرب إليكِ في",
     footerLine: "عناية هادئة، أينما كنتِ.",
-    photoPlaceholder: "أضيفي الصورة هنا",
-    logoAlt: "شعار الجودي سبا",
+    homeImageAlt: "جلسة عناية واسترخاء في راحة المنزل",
+    individualImageAlt: "أخصائية تقدّم جلسة مساج فردية",
+    packagesImageAlt: "تجهيزات باقات العناية والاسترخاء",
+    logoAlt: "شعار AlJoudi Wellness Spa",
     noDate: "اختاري تاريخاً متاحاً",
     weekdays: ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"],
     branches: {
@@ -114,18 +116,17 @@ export const translations = {
     packages: "Packages",
     bookings: "My bookings",
     profile: "Profile",
-    profileUnavailable: "The profile page is not available yet",
     location: "Branch",
     language: "العربية",
-    welcomeEyebrow: "ALJOUDI SPA · CARE & WELLNESS",
+    welcomeEyebrow: "ALJOUDI WELLNESS SPA · CARE & WELLNESS",
     welcomeTitle: "A moment of calm begins here",
     welcomeSubtitle: "Care, closer to you",
     welcomeDescription:
-      "Choose your branch and let the AlJoudi Spa experience come to you, in the comfort of your home.",
+      "Choose your branch and let the AlJoudi Wellness Spa experience come to you, in the comfort of your home.",
     chooseBranch: "Choose your branch",
     chooseBranchHint: "Choose the branch closest to you",
     continue: "Discover the AlJoudi experience",
-    homeEyebrow: "WELCOME TO ALJOUDI SPA",
+    homeEyebrow: "WELCOME TO ALJOUDI WELLNESS SPA",
     homeTitle: "A moment of care, in the comfort of home",
     homeDescription:
       "Discover thoughtfully chosen treatments and packages, made to fit your needs.",
@@ -194,8 +195,10 @@ export const translations = {
       "Your session selections are ready. Connect a payment provider to confirm your booking.",
     branchHint: "Thoughtful care in",
     footerLine: "A quieter kind of care, wherever you are.",
-    photoPlaceholder: "Add your photo here",
-    logoAlt: "AlJoudi Spa logo",
+    homeImageAlt: "A relaxing care session in the comfort of home",
+    individualImageAlt: "A specialist giving an individual massage session",
+    packagesImageAlt: "Care and relaxation package setup",
+    logoAlt: "AlJoudi Wellness Spa logo",
     noDate: "Choose an available date",
     weekdays: ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"],
     branches: {
@@ -208,22 +211,23 @@ export const translations = {
 
 export const landingCopy = {
   ar: {
-    aboutNav: "عن الجودي سبا",
+    aboutNav: "عن AlJoudi Wellness Spa",
     faqNav: "الأسئلة الشائعة",
     contactNav: "تواصل معنا",
+    heroSlogan: "جودي كل الجود لك",
     heroTitle: "لحظة العناية تبدأ من هنا",
     heroDescription: "اختاري فرعكِ، واكتشفي الجلسات والباقات المتاحة لكِ.",
     heroTagline: "العناية والرفاهية، في راحة منزلكِ",
     heroAction: "ابدأي رحلتك ",
     branchNames: { riyadh: "RIYADH", jazan: "JAZAN", khobar: "AL KHOBAR" },
-    aboutEyebrow: "عن الجودي سبا",
+    aboutEyebrow: "عن AlJoudi Wellness Spa",
     aboutTitle: "مساحة من الهدوء، تأتي إليكِ",
     aboutParagraphs: [
-      "الجودي سبا تجربة عناية ورفاهية منزلية، تمنحكِ مساحة تستعيدين فيها هدوءكِ وتوازنكِ، دون أن تغادري المكان الذي ترتاحين فيه.",
+      "AlJoudi Wellness Spa تجربة عناية ورفاهية منزلية، تمنحكِ مساحة تستعيدين فيها هدوءكِ وتوازنكِ، دون أن تغادري المكان الذي ترتاحين فيه.",
       "نؤمن أن العناية بالنفس ليست تفصيلًا مؤجلًا؛ بل وقتٌ تستحقينه. من اختيار جلستكِ إلى موعد زيارتكِ، تبدأ التجربة بكِ وبما يناسب يومكِ.",
     ],
-    aboutImageAlt: "تفاصيل من هوية الجودي سبا والعناية المنزلية",
-    experienceEyebrow: "تجربة الجودي",
+    aboutImageAlt: "تفاصيل من هوية AlJoudi Wellness Spa والعناية المنزلية",
+    experienceEyebrow: "تجربة AlJoudi",
     experienceTitle: "العناية في التفاصيل",
     experienceItems: [
       ["في راحة منزلكِ", "مساحتكِ المألوفة تصبح مكانًا للحظة عناية وهدوء."],
@@ -233,7 +237,7 @@ export const landingCopy = {
     storyTitle: "امنحي نفسكِ وقتًا… ودعي الباقي علينا",
     storyDescription: "لحظات من العناية، وقليل من الهدوء، ومساحة لكِ وحدكِ.",
     journeyEyebrow: "من اختياركِ إلى زيارتكِ",
-    journeyTitle: "رحلتكِ مع الجودي",
+    journeyTitle: "رحلتكِ مع AlJoudi",
     journeyDescription: "خطوات بسيطة تقرّبكِ من لحظة العناية التي تستحقينها.",
     journeyItems: [
       ["اختاري الفرع", "ابدئي بالفرع الذي يقدّم الخدمة في مدينتكِ."],
@@ -245,7 +249,7 @@ export const landingCopy = {
     faqTitle: "أسئلتكِ، بكل وضوح",
     faqDescription: "إجابات تساعدكِ على بدء تجربتكِ.",
     faqItems: [
-      ["ما هو الجودي سبا؟", "الجودي سبا تقدّم جلسات عناية ورفاهية في المنزل. اختاري فرعكِ للتعرّف على الخدمات والباقات المتاحة."],
+      ["ما هو AlJoudi Wellness Spa؟", "AlJoudi Wellness Spa تقدّم جلسات عناية ورفاهية في المنزل. اختاري فرعكِ للتعرّف على الخدمات والباقات المتاحة."],
       ["كيف أبدأ الحجز؟", "من أعلى الصفحة اختاري الفرع، ثم الخدمة أو الباقة، والأخصائية والموعد المتاح. بعد إدخال عنوان الزيارة وإتمام الدفع يتم تأكيد الحجز."],
       ["أين تتوفر الخدمة؟", "تتوفر الخدمة في فروع الرياض وجازان والخبر. اختاري فرعكِ للتعرّف على الخدمات المتاحة."],
       ["هل أختار الأخصائية عند الحجز؟", "نعم، يمكنكِ اختيار الأخصائية والموعد المتاح أثناء الحجز."],
@@ -257,15 +261,15 @@ export const landingCopy = {
     contactDescription: "نساعدكِ في التعرّف على التجربة واختيار ما يناسبكِ.",
     contactAction: "تواصلي معنا",
     chooseBranchAction: "اختاري فرعكِ",
-    footerTagline: "الجودي سبا · العناية أقرب إليكِ",
+    footerTagline: "AlJoudi Wellness Spa · العناية أقرب إليكِ",
     footerFollow: "تابعينا… وخلي العناية أقرب",
-    socialLinks: ["سناب شات", "تيك توك", "إنستجرام"],
-    footerCopyright: "الجودي سبا · جميع الحقوق محفوظة",
+    footerCopyright: "AlJoudi Wellness Spa · جميع الحقوق محفوظة",
   },
   en: {
     aboutNav: "About AlJoudi",
     faqNav: "FAQs",
     contactNav: "Contact us",
+    heroSlogan: "جودي كل الجود لك",
     heroTitle: "Your moment of care starts here",
     heroDescription: "Choose your branch and explore the sessions and packages available to you.",
     heroTagline: "Care and wellness, in the comfort of home",
@@ -300,7 +304,7 @@ export const landingCopy = {
     faqTitle: "Your questions, clearly answered",
     faqDescription: "Answers to help you begin your experience.",
     faqItems: [
-      ["What is AlJoudi Spa?", "AlJoudi Spa offers care and wellness sessions at home. Choose your branch to explore the available services and packages."],
+      ["What is AlJoudi Wellness Spa?", "AlJoudi Wellness Spa offers care and wellness sessions at home. Choose your branch to explore the available services and packages."],
       ["How do I book?", "Choose your branch, then a service or package, your specialist, and an available appointment. Add your visit address and complete payment to confirm your booking."],
       ["Where is the service available?", "Choose from our Riyadh, Jazan, and Al Khobar branches to see the services available in your area."],
       ["Can I choose my specialist?", "Yes. Choose your specialist and an available appointment while booking."],
@@ -312,12 +316,21 @@ export const landingCopy = {
     contactDescription: "We can help you discover the experience and choose what suits you.",
     contactAction: "Get in touch",
     chooseBranchAction: "Choose your branch",
-    footerTagline: "AlJoudi Spa · Care, closer to you",
+    footerTagline: "AlJoudi Wellness Spa · Care, closer to you",
     footerFollow: "Follow us… and keep care close",
-    socialLinks: ["Snapchat", "TikTok", "Instagram"],
-    footerCopyright: "AlJoudi Spa · All rights reserved",
+    footerCopyright: "AlJoudi Wellness Spa · All rights reserved",
   },
 } as const;
+
+/**
+ * Social accounts shown in the landing footer.
+ * TODO(client): replace the placeholder URLs with the real AlJoudi accounts.
+ */
+export const SOCIAL_LINKS = [
+  { id: "snapchat", label: { ar: "سناب شات", en: "Snapchat" }, href: "https://www.snapchat.com/add/aljoudi_spa" },
+  { id: "tiktok", label: { ar: "تيك توك", en: "TikTok" }, href: "https://www.tiktok.com/@aljoudi_spa" },
+  { id: "instagram", label: { ar: "إنستجرام", en: "Instagram" }, href: "https://www.instagram.com/aljoudi_spa" },
+] as const;
 
 export const journeyCopy = {
   ar: {
@@ -328,7 +341,7 @@ export const journeyCopy = {
     homeService: "خدمة منزلية",
     previewNotice:
       "الأخصائيات والمواعيد في هذه المعاينة تجريبية. لا يتم إرسال بياناتكِ أو خصم أي مبلغ.",
-    addOnsTitle: "إضافات الجودي سبا",
+    addOnsTitle: "إضافات AlJoudi Wellness Spa",
     addOnsDescription:
       "لأن كل تفصيلة تصنع فرقًا في تجربتكِ، أضفنا لكِ خيارات مميزة تمنحكِ المزيد من العناية والدلال، لتصممي تجربتكِ بالطريقة التي تحبينها.",
     addOns: [
@@ -355,6 +368,7 @@ export const journeyCopy = {
     ],
     viewDetails: "عرض التفاصيل",
     bookFirst: "احجزي موعدكِ الأول",
+    bookVisit: "احجزي زيارتكِ",
     bookNow: "احجزي الآن",
   },
   en: {
@@ -365,7 +379,7 @@ export const journeyCopy = {
     homeService: "At-home care",
     previewNotice:
       "Specialists and appointments in this preview are illustrative. Your details are not sent and no payment is taken.",
-    addOnsTitle: "AlJoudi Spa add-ons",
+    addOnsTitle: "AlJoudi Wellness Spa add-ons",
     addOnsDescription:
       "Every detail shapes your experience. Choose a personal touch of extra care and pampering.",
     addOns: [
@@ -392,9 +406,22 @@ export const journeyCopy = {
     ],
     viewDetails: "View details",
     bookFirst: "Book your first session",
+    bookVisit: "Book your visit",
     bookNow: "Book now",
   },
 } as const;
+
+/** Short add-on names ("Relaxing head massage"), in the same order as ADD_ONS. */
+export function addOnNames(language: Language): string[] {
+  return journeyCopy[language].addOns.map((item) => item.split(/[:：]/)[0].trim());
+}
+
+export function addOnLabels(ids: readonly string[], language: Language): string {
+  const names = addOnNames(language);
+  return ADD_ONS.map((item, index) => (ids.includes(item.id) ? names[index] : ""))
+    .filter(Boolean)
+    .join(language === "ar" ? "، " : ", ");
+}
 
 export const languageListeners = new Set<() => void>();
 

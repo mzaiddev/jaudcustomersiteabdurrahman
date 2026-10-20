@@ -28,10 +28,23 @@ import {
   useDb,
 } from "./mock-engine";
 import { findPackage, findService, findSpecialist } from "./mock-data";
-import { productPhotos, type ProductId } from "./product-catalogue";
-import { addMonthsIso, guestsFor, parseMapLink, priceFor, riyadhParts, sessionsLeft } from "./rules";
+import { productCatalogue, productPhotos, type ProductId } from "./product-catalogue";
+import {
+  ADD_ONS,
+  ADD_ON_PRICE,
+  addMonthsIso,
+  addOnMinutes,
+  guestsFor,
+  isMapLink,
+  parseMapLink,
+  priceFor,
+  riyadhParts,
+  sessionsLeft,
+  validAddOns,
+} from "./rules";
+import { addOnLabels, addOnNames as namesFor } from "./site-data";
 import { useBranch } from "./site-ui";
-import { draftKey, emptyDraft, removeStored, useStored, type BookingDraft } from "./storage";
+import { draftKey, emptyDraft, readStoredValue, removeStored, useStored, type BookingDraft } from "./storage";
 import { EngineError, type Customer, type Entitlement, type LocationId } from "./types";
 
 type PayMethod = "mada" | "card" | "apple" | "later";
@@ -84,7 +97,17 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
   const [formError, setFormError] = useState("");
   const [savingAddress, setSavingAddress] = useState(false);
 
-  const patch = (change: Partial<BookingDraft>) => setDraft({ ...emptyDraft, ...draft, ...change });
+  // Merge with what is stored right now, so two patches in the same click don't overwrite each other.
+  const patch = (change: Partial<BookingDraft>) => {
+    const raw = readStoredValue(draftKey(branch, productId, entitlement?.id));
+    let latest = draft;
+    try {
+      if (raw) latest = JSON.parse(raw) as BookingDraft;
+    } catch {
+      // Fall back to the rendered draft.
+    }
+    setDraft({ ...emptyDraft, ...latest, ...change });
+  };
 
   const addresses = customer.addresses.filter((item) => item.locationId === branch);
   const addressId = addresses.some((item) => item.id === draft.addressId)
@@ -98,12 +121,15 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
   const baseGuests = pkg ? pkg.guests : 1;
   const allowsExtraGuests = Boolean(pkg && pkg.extraGuestPrice > 0 && !entitlement);
   const guests = allowsExtraGuests ? guestsFor(product, draft.guests) : baseGuests;
-  const price = priceFor(product, guests);
+  const addOns = pkg ? [] : validAddOns(draft.addOns);
+  const extraMinutes = addOnMinutes(addOns);
+  const price = priceFor(product, guests, addOns);
+  const addOnNames = namesFor(language);
   const serviceId = pkg ? pkg.serviceId : service?.id;
   const specialistOptions = eligibleSpecialists(branch, serviceId);
   const suggestedId = entitlement ? lastSpecialistFor(db, entitlement.id) : undefined;
 
-  const slotQuery = { locationId: branch, serviceId: service?.id, packageId: pkg?.id, guests };
+  const slotQuery = { locationId: branch, serviceId: service?.id, packageId: pkg?.id, guests, extraMinutes };
   const slot = (() => {
     if (!draft.time) return null;
     const found = computeSlots(db, {
@@ -120,7 +146,13 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
   const chosenSpecialist = findSpecialist(draft.specialist === "any" ? "" : draft.specialist);
   const steps = entitlement ? [t.stepVisit, t.stepTime, t.stepConfirm] : [t.stepVisit, t.stepTime, t.stepPay];
   const isPurchase = Boolean(pkg && !entitlement);
-  const title = entitlement ? t.bookingTitleSession : pkg ? t.bookingTitlePackage : t.bookingTitle;
+  const title = entitlement
+    ? t.bookingTitleSession
+    : pkg
+      ? productCatalogue.find((item) => item.id === pkg.id)?.repeat === false
+        ? t.bookingTitleVisit
+        : t.bookingTitlePackage
+      : t.bookingTitle;
   const validUntil = pkg ? addMonthsIso(now, pkg.validityMonths) : "";
 
   function goTo(next: number) {
@@ -137,7 +169,9 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
     setFormError("");
     if (!form.district.trim()) return setFormError(t.errDistrict);
     if (!form.street.trim()) return setFormError(t.errStreet);
-    const point = form.mapLink.trim() ? parseMapLink(form.mapLink) : null;
+    if (!form.mapLink.trim()) return setFormError(t.errMapLink);
+    if (!isMapLink(form.mapLink)) return setFormError(t.errMapLinkInvalid);
+    const point = parseMapLink(form.mapLink);
     setSavingAddress(true);
     try {
       const saved = await saveAddress(customer.id, {
@@ -148,6 +182,7 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
         notes: form.notes.trim() || undefined,
         lat: point?.lat,
         lng: point?.lng,
+        mapLink: form.mapLink.trim(),
         locationId: branch,
       });
       patch({ addressId: saved.id });
@@ -201,6 +236,7 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
           specialistId: draft.specialist,
           startsAt: slot.startsAt,
           guests,
+          addOns,
           address,
           notes: draft.notes,
         });
@@ -448,6 +484,46 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
                 </fieldset>
               )}
 
+              {service && (
+                <fieldset className="booking-group">
+                  <legend>{t.addOnsTitle}</legend>
+                  <p className="flow-muted">
+                    {fill(t.addOnsHint, { price: flow.formatNumber(ADD_ON_PRICE), m: flow.formatNumber(20) })}
+                  </p>
+                  <div className="pay-methods add-on-list" role="group" aria-label={t.addOnsTitle}>
+                    {ADD_ONS.map((item, index) => {
+                      const checked = addOns.includes(item.id);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          role="checkbox"
+                          aria-checked={checked}
+                          className={`pay-method add-on-option${checked ? " selected" : ""}`}
+                          onClick={() =>
+                            patch({
+                              addOns: checked ? addOns.filter((id) => id !== item.id) : [...addOns, item.id],
+                              time: "",
+                            })
+                          }
+                        >
+                          <span>
+                            <strong>{addOnNames[index]}</strong>
+                            <small>
+                              {flow.money(ADD_ON_PRICE)} ·{" "}
+                              {item.minutes > 0
+                                ? fill(t.addOnMinutes, { m: flow.formatNumber(item.minutes) })
+                                : t.addOnNoTime}
+                            </small>
+                          </span>
+                          {checked && <Icon name="check" className="selected-mark" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              )}
+
               {!address && <p className="flow-muted">{t.pickAddress}</p>}
               <div className="flow-actions">
                 <button className="button button-primary" type="button" disabled={!address} onClick={() => goTo(1)}>
@@ -641,7 +717,7 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
               <span>{pkg ? t.summaryPackage : t.summaryProduct}</span>
               <strong>{product.name[language]}</strong>
               <small>
-                {flow.formatNumber(product.minutes * guests)} {t.minutes}
+                {flow.formatNumber(product.minutes * guests + extraMinutes)} {t.minutes}
               </small>
             </div>
           </div>
@@ -659,6 +735,12 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
             <div className="summary-row">
               <span>{t.summaryGuests}</span>
               <strong>{flow.formatNumber(guests)}</strong>
+            </div>
+          )}
+          {addOns.length > 0 && (
+            <div className="summary-row">
+              <span>{t.priceAddOns}</span>
+              <strong>{addOnLabels(addOns, language)}</strong>
             </div>
           )}
           <div className="summary-row">
@@ -701,6 +783,20 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
                   </span>
                   <strong>{flow.money(price.extraGuests)}</strong>
                 </div>
+              )}
+              {price.addOns > 0 && (
+                <>
+                  <div className="summary-row">
+                    <span>{t.priceBase}</span>
+                    <strong>{flow.money(price.base)}</strong>
+                  </div>
+                  <div className="summary-row">
+                    <span>
+                      {t.priceAddOns} × {flow.formatNumber(addOns.length)}
+                    </span>
+                    <strong>{flow.money(price.addOns)}</strong>
+                  </div>
+                </>
               )}
               <div className="summary-price">
                 <span>{t.priceTotal}</span>

@@ -76,6 +76,8 @@ export type Address = {
   notes?: string;
   lat?: number;
   lng?: number;
+  /** Map link pasted by the customer, kept for the visit team. */
+  mapLink?: string;
   locationId: LocationId;
 };
 
@@ -119,6 +121,8 @@ export type Booking = {
   startsAt: string;
   endsAt: string;
   guests: number;
+  /** Optional extras chosen for an individual session. */
+  addOns?: string[];
   price: number;
   notes?: string;
   followUp?: string;
@@ -180,6 +184,8 @@ export type SlotQuery = {
   packageId?: string;
   date: string;
   guests?: number;
+  /** Minutes added by add-ons (individual sessions only). */
+  extraMinutes?: number;
   excludeBookingId?: string;
 };
 
@@ -191,6 +197,7 @@ export type NewBookingInput = {
   specialistId: string | "any";
   startsAt: string;
   guests: number;
+  addOns?: string[];
   address: Omit<Address, "id"> & { id?: string };
   notes?: string;
 };

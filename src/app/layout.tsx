@@ -22,9 +22,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "الجودي سبا | AlJoudi Spa",
+  title: "AlJoudi Wellness Spa",
   description:
-    "لحظة هدوء... تبدأ من هنا. اكتشفي تجربة الجودي سبا للعناية والاسترخاء. A moment of calm begins here. Discover AlJoudi Spa care and relaxation.",
+    "لحظة هدوء... تبدأ من هنا. اكتشفي تجربة AlJoudi Wellness Spa للعناية والاسترخاء. A moment of calm begins here. Discover AlJoudi Wellness Spa care and relaxation.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

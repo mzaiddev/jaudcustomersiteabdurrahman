@@ -1,4 +1,4 @@
-<ns0:svg xmlns:ns0="http://www.w3.org/2000/svg" version="1.1" width="590" height="420" viewBox="680 330 590 420">
+<ns0:svg xmlns:ns0="http://www.w3.org/2000/svg" version="1.1" width="560" height="270" viewBox="690 487 560 270">
 <ns0:defs>
 <ns0:clipPath id="clip_1">
 <ns0:path transform="matrix(1,0,0,-1,0,1080)" d="M0 0H1920V1080H0Z" />
@@ -28,7 +28,6 @@
 <ns0:g clip-path="url(#clip_6)">
 </ns0:g>
 </ns0:g>
-<ns0:text x="1005" y="445" fill="#2c5f2d" font-family="Noto Sans Arabic, Tahoma, sans-serif" font-size="70" font-weight="300" direction="rtl" unicode-bidi="plaintext" text-anchor="middle">الجودي سبا</ns0:text>
 <ns0:g opacity=".309998">
 <ns0:g clip-path="url(#clip_7)">
 <ns0:g clip-path="url(#clip_8)">

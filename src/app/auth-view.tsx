@@ -7,7 +7,7 @@ import { useAuth } from "./auth";
 import { Field, FlowNotice, PageLoading, useFlow } from "./flow-ui";
 import { locations } from "./mock-data";
 import { phoneIsRegistered, registerCustomer, sendOtp, validateAddress, verifyOtp } from "./mock-engine";
-import { isValidPhone, normalizePhone, parseMapLink, toWesternDigits } from "./rules";
+import { isMapLink, isValidPhone, normalizePhone, parseMapLink, toWesternDigits } from "./rules";
 import { useBranch } from "./site-ui";
 import { EngineError, type LocationId } from "./types";
 
@@ -70,6 +70,7 @@ export function AuthView() {
       notes: notes.trim() || undefined,
       lat: point?.lat,
       lng: point?.lng,
+      mapLink: mapLink.trim() || undefined,
       locationId: city,
     };
   }
@@ -88,6 +89,8 @@ export function AuthView() {
       if (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim())) return setError(t.errEmail);
       if (!district.trim()) return setError(t.errDistrict);
       if (!street.trim()) return setError(t.errStreet);
+      if (!mapLink.trim()) return setError(t.errMapLink);
+      if (!isMapLink(mapLink)) return setError(t.errMapLinkInvalid);
       try {
         validateAddress(addressInput());
       } catch (failure) {

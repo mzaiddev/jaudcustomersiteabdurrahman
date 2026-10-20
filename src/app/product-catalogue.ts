@@ -59,7 +59,7 @@ export const productCatalogue: Product[] = [
     id: "aljoudi",
     kind: "service",
     image: "serviceMassage",
-    name: { ar: "مساج الجودي سبا", en: "AlJoudi Spa Massage" },
+    name: { ar: "مساج AlJoudi Wellness Spa", en: "AlJoudi Wellness Spa Massage" },
     price: 450,
     minutes: 90,
     sessions: 1,
@@ -199,8 +199,21 @@ export const productCatalogue: Product[] = [
       en: "A package offering the freedom to choose your preferred massage, with four sessions of the same type or choices suited to your needs from the services included in the package. Refresh your sense of comfort and self-care, and make body care part of your weekly routine.",
     },
     facts: {
-      ar: ["٤ جلسات من الخدمات المشمولة", "مدة كل جلسة حسب نوع المساج المختار"],
-      en: ["4 sessions from the included services", "Session duration depends on the selected massage"],
+      // TODO(client): replace the [to confirm] items with the final approved list.
+      ar: [
+        "٤ جلسات من الخدمات المشمولة",
+        "أنواع المساج المشمولة: [للتأكيد — مثل: مساج الهدوء، مساج الديتوكس، مساج AlJoudi Wellness Spa، الأحجار الساخنة]",
+        "مدة كل نوع: [للتأكيد — مثل: الهدوء ٦٠ دقيقة، الديتوكس ٩٠ دقيقة]",
+        "غير مشمول: [للتأكيد — مثل: جلسات VIP والإضافات]",
+        "اختيار نوع مختلف في كل زيارة: [للتأكيد]",
+      ],
+      en: [
+        "4 sessions from the included services",
+        "Included massage types: [to confirm — e.g. Calm, Detox, AlJoudi Wellness Spa massage, Hot stone]",
+        "Duration of each type: [to confirm — e.g. Calm 60 min, Detox 90 min]",
+        "Not included: [to confirm — e.g. VIP sessions and add-ons]",
+        "A different type at each visit: [to confirm]",
+      ],
     },
   },
   {
@@ -216,12 +229,12 @@ export const productCatalogue: Product[] = [
     group: true,
     extraPrice: 0,
     description: {
-      ar: "باقة مميزة للزوجين تجمع بين الاسترخاء والاهتمام المشترك. استمتعا بأربع جلسات مساج استرخائي، لكل منكما ساعة من الراحة والهدوء، في تجربة تمنحكما فرصة لتجديد الطاقة وصنع لحظات جميلة معًا.",
-      en: "A special couples package combining relaxation and shared care. Enjoy four relaxing massage appointments together, with an hour of rest and calm for each of you at every appointment. A chance to renew your energy and create beautiful moments together.",
+      ar: "باقة مميزة للزوجين تجمع بين الاسترخاء والاهتمام المشترك: أربع زيارات لشخصين، مع جلسة مساج استرخائي مدتها ٦٠ دقيقة لكل شخص في كل زيارة، في تجربة تمنحكما فرصة لتجديد الطاقة وصنع لحظات جميلة معًا.",
+      en: "A special couples package combining relaxation and shared care: four visits for two people, with a 60-minute relaxation massage per person at each visit. A chance to renew your energy and create beautiful moments together.",
     },
     facts: {
-      ar: ["٤ مواعيد مساج للزوجين", "٦٠ دقيقة لكل شخص في كل موعد"],
-      en: ["4 couples massage appointments", "60 minutes per person at each appointment"],
+      ar: ["أربع زيارات لشخصين", "جلسة مدتها ٦٠ دقيقة لكل شخص في كل زيارة"],
+      en: ["Four visits for two people", "A 60-minute session per person at each visit"],
     },
   },
   {

@@ -23,7 +23,6 @@ import {
 import { fill } from "./flow-copy";
 import {
   canChangeBooking,
-  cancelBooking,
   customerBookings,
   customerEntitlements,
   deleteAddress,
@@ -38,7 +37,8 @@ import {
   useDb,
 } from "./mock-engine";
 import { findPackage, findSpecialist, locations } from "./mock-data";
-import { RULES, parseMapLink, sessionsLeft } from "./rules";
+import { RULES, isMapLink, parseMapLink, sessionsLeft } from "./rules";
+import { addOnLabels } from "./site-data";
 import { useBranch } from "./site-ui";
 import { EngineError, type Address, type Booking, type Customer, type Entitlement, type LocationId } from "./types";
 
@@ -237,7 +237,7 @@ function BookingDetailInner({ customer }: { customer: Customer }) {
   const { db } = useDb();
   const now = useNow();
   const booking = db.bookings.find((item) => item.id === params.id && item.customerId === customer.id);
-  const [mode, setMode] = useState<"view" | "cancel" | "reschedule">("view");
+  const [mode, setMode] = useState<"view" | "reschedule">("view");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -276,29 +276,6 @@ function BookingDetailInner({ customer }: { customer: Customer }) {
       if (failure.code === "VALIDATION_FAILED") return t.errReason;
     }
     return t.genericError;
-  }
-
-  async function confirmCancel() {
-    if (!booking) return;
-    setError("");
-    setBusy(true);
-    try {
-      const cancelled = await cancelBooking(customer.id, booking.id, reason);
-      setMode("view");
-      setReason("");
-      setMessage(
-        [
-          t.cancelledOk,
-          cancelled.entitlementId ? t.cancelSessionReturned : booking.paymentStatus === "paid" ? t.cancelRefundReview : "",
-        ]
-          .filter(Boolean)
-          .join(" "),
-      );
-    } catch (failure) {
-      setError(describe(failure));
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function confirmReschedule() {
@@ -399,6 +376,12 @@ function BookingDetailInner({ customer }: { customer: Customer }) {
             <dt>{t.detailPrice}</dt>
             <dd>{booking.entitlementId ? t.coveredByPackage : flow.money(booking.price)}</dd>
           </div>
+          {booking.addOns && booking.addOns.length > 0 && (
+            <div>
+              <dt>{t.detailAddOns}</dt>
+              <dd>{addOnLabels(booking.addOns, language)}</dd>
+            </div>
+          )}
           {booking.notes && (
             <div>
               <dt>{t.detailNotes}</dt>
@@ -427,14 +410,9 @@ function BookingDetailInner({ customer }: { customer: Customer }) {
             </button>
           )}
           {changeable && (
-            <>
-              <button className="button button-outline" type="button" onClick={() => setMode("reschedule")}>
-                {t.rescheduleBooking}
-              </button>
-              <button className="button button-outline danger" type="button" onClick={() => setMode("cancel")}>
-                {t.cancelBooking}
-              </button>
-            </>
+            <button className="button button-outline" type="button" onClick={() => setMode("reschedule")}>
+              {t.rescheduleBooking}
+            </button>
           )}
           {!changeable && booking.status === "confirmed" && (
             <p className="flow-muted">
@@ -445,29 +423,6 @@ function BookingDetailInner({ customer }: { customer: Customer }) {
             </p>
           )}
           {changeable && booking.status === "confirmed" && <p className="flow-muted">{t.freeChangeNote}</p>}
-        </div>
-      )}
-
-      {mode === "cancel" && (
-        <div className="flow-panel">
-          <Field label={t.cancelReasonLabel} htmlFor="cancel-reason">
-            <textarea
-              id="cancel-reason"
-              className="flow-textarea"
-              rows={3}
-              value={reason}
-              placeholder={t.cancelReasonPlaceholder}
-              onChange={(event) => setReason(event.target.value)}
-            />
-          </Field>
-          <div className="flow-actions">
-            <button className="button button-outline danger" type="button" onClick={confirmCancel} disabled={busy}>
-              {busy ? t.cancelling : t.cancelConfirm}
-            </button>
-            <button className="text-link" type="button" onClick={() => setMode("view")}>
-              {t.keepBooking}
-            </button>
-          </div>
         </div>
       )}
 
@@ -890,7 +845,7 @@ function AddressesInner({ customer }: { customer: Customer }) {
             street: address.street,
             building: address.building,
             notes: address.notes ?? "",
-            mapLink: address.lat !== undefined ? `${address.lat}, ${address.lng}` : "",
+            mapLink: address.mapLink ?? (address.lat !== undefined ? `${address.lat}, ${address.lng}` : ""),
             locationId: address.locationId,
           }
         : { ...blankAddress, locationId: branch },
@@ -903,7 +858,9 @@ function AddressesInner({ customer }: { customer: Customer }) {
     setError("");
     if (!editing.district.trim()) return setError(t.errDistrict);
     if (!editing.street.trim()) return setError(t.errStreet);
-    const point = editing.mapLink.trim() ? parseMapLink(editing.mapLink) : null;
+    if (!editing.mapLink.trim()) return setError(t.errMapLink);
+    if (!isMapLink(editing.mapLink)) return setError(t.errMapLinkInvalid);
+    const point = parseMapLink(editing.mapLink);
     setBusy(true);
     try {
       await saveAddress(customer.id, {
@@ -915,6 +872,7 @@ function AddressesInner({ customer }: { customer: Customer }) {
         notes: editing.notes.trim() || undefined,
         lat: point?.lat,
         lng: point?.lng,
+        mapLink: editing.mapLink.trim(),
         locationId: editing.locationId,
       });
       setEditing(null);
@@ -1036,7 +994,7 @@ function buildIcs(booking: Booking, title: string, location: string) {
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//AlJoudi Spa//Booking//EN",
+    "PRODID:-//AlJoudi Wellness Spa//Booking//EN",
     "BEGIN:VEVENT",
     `UID:${booking.id}@aljoudi-spa`,
     `DTSTAMP:${stamp(new Date().toISOString())}`,
@@ -1134,6 +1092,12 @@ function ConfirmationInner({ customer }: { customer: Customer }) {
             <div>
               <dt>{t.sessionsLabel}</dt>
               <dd>{fill(t.sessionOf, { i: flow.formatNumber(session.index), n: flow.formatNumber(session.total) })}</dd>
+            </div>
+          )}
+          {booking.addOns && booking.addOns.length > 0 && (
+            <div>
+              <dt>{t.detailAddOns}</dt>
+              <dd>{addOnLabels(booking.addOns, language)}</dd>
             </div>
           )}
           <div>

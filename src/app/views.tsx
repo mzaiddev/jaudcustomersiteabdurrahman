@@ -49,7 +49,7 @@ export function HomeView() {
               </Link>
             </div>
           </div>
-          <ImagePlaceholder name="home" label={text.photoPlaceholder} className="home-visual" />
+          <ImagePlaceholder name="home" label={text.homeImageAlt} className="home-visual" />
           <span className="home-decoration" aria-hidden="true">ج</span>
         </section>
 
@@ -65,7 +65,7 @@ export function HomeView() {
             <Link className="discover-card" href={`${base}/services`}>
               <ImagePlaceholder
                 name="individualSessions"
-                label={text.photoPlaceholder}
+                label={text.individualImageAlt}
                 className="discover-visual"
               />
               <span className="discover-card-content" dir={isArabic ? "rtl" : "ltr"}>
@@ -83,7 +83,7 @@ export function HomeView() {
             <Link className="discover-card" href={`${base}/packages`}>
               <ImagePlaceholder
                 name="carePackages"
-                label={text.photoPlaceholder}
+                label={text.packagesImageAlt}
                 className="discover-visual"
               />
               <span className="discover-card-content" dir={isArabic ? "rtl" : "ltr"}>
@@ -231,7 +231,7 @@ export function DetailView({ kind }: { kind: ProductKind }) {
             <strong>{product.priceLabel}</strong>
           </div>
           <Link className="button button-primary package-cta" href={`${base}/book/${product.id}`}>
-            {isPackage ? copy.bookFirst : copy.bookNow}
+            {isPackage ? (product.repeat ? copy.bookFirst : copy.bookVisit) : copy.bookNow}
             <Icon name="arrow" />
           </Link>
         </div>

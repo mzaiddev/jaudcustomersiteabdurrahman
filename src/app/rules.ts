@@ -11,6 +11,23 @@ export const RULES = {
   maxDaysAhead: 60,
 } as const;
 
+/** Optional extras for individual sessions. Names live in journeyCopy.addOns (same order). */
+export const ADD_ON_PRICE = 35;
+export const ADD_ONS = [
+  { id: "head", minutes: 20 },
+  { id: "guasha", minutes: 20 },
+  { id: "birthday", minutes: 0 },
+] as const;
+export type AddOnId = (typeof ADD_ONS)[number]["id"];
+
+export function validAddOns(ids: readonly string[] | undefined): AddOnId[] {
+  return ADD_ONS.filter((item) => ids?.includes(item.id)).map((item) => item.id);
+}
+
+export function addOnMinutes(ids: readonly string[] | undefined): number {
+  return ADD_ONS.filter((item) => ids?.includes(item.id)).reduce((sum, item) => sum + item.minutes, 0);
+}
+
 const RIYADH_OFFSET_MINUTES = 180;
 
 /** `+9665…` form used as the customer key. Accepts 05…, 5…, 9665…, +9665…, 00…. */
@@ -127,6 +144,13 @@ export function parseMapLink(link: string): { lat: number; lng: number } | null 
   return { lat: Number(match[1]), lng: Number(match[2]) };
 }
 
+/** A Google Maps link (full, short share link, or plain "lat, lng"). Required for every visit address. */
+export function isMapLink(link: string): boolean {
+  const value = link.trim();
+  if (parseMapLink(value)) return true;
+  return /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|(www\.)?google\.[a-z.]+\/maps|maps\.google\.[a-z.]+)\S*/i.test(value);
+}
+
 export function guestsFor(product: Service | SpaPackage, requested: number): number {
   const base = "sessions" in product ? product.guests : 1;
   return Math.max(base, requested || base);
@@ -136,22 +160,27 @@ export type PriceBreakdown = {
   base: number;
   extraGuests: number;
   extraGuestCount: number;
+  addOns: number;
   total: number;
 };
 
-/** Package: price + (guests − pkg.guests) × extraGuestPrice. */
+/** Package: price + (guests − pkg.guests) × extraGuestPrice. Service: price + add-ons. */
 export function priceFor(
   product: Service | SpaPackage,
   guests: number,
+  addOnIds: readonly string[] = [],
 ): PriceBreakdown {
   const extraGuestCount =
     "sessions" in product ? Math.max(0, guests - product.guests) : 0;
   const extraGuests = "sessions" in product ? extraGuestCount * product.extraGuestPrice : 0;
 
+  const addOns = "sessions" in product ? 0 : validAddOns(addOnIds).length * ADD_ON_PRICE;
+
   return {
     base: product.price,
     extraGuests,
     extraGuestCount,
-    total: product.price + extraGuests,
+    addOns,
+    total: product.price + extraGuests + addOns,
   };
 }

@@ -4,12 +4,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { Icon, SilkCanvas } from "./components";
 import { siteAssets } from "./site-assets";
-import { branches, landingCopy } from "./site-data";
+import { SOCIAL_LINKS, branches, isBranch, landingCopy } from "./site-data";
 import { Logo, useLanguage } from "./site-ui";
+import { BRANCH_KEY, useStored } from "./storage";
 
 export function LandingPage() {
   const { language, isArabic, text, toggleLanguage } = useLanguage();
   const copy = landingCopy[language];
+  const [lastBranch] = useStored<string>(BRANCH_KEY, "riyadh");
+  const profileBranch = isBranch(lastBranch) ? lastBranch : "riyadh";
 
   return (
     <div className="landing-page" dir={isArabic ? "rtl" : "ltr"}>
@@ -42,14 +45,7 @@ export function LandingPage() {
             <a href="#landing-about">{copy.aboutNav}</a>
             <a href="#landing-faq">{copy.faqNav}</a>
             <a href="#landing-contact">{copy.contactNav}</a>
-            <button
-              className="landing-profile-unavailable"
-              type="button"
-              disabled
-              title={text.profileUnavailable}
-            >
-              {text.profile}
-            </button>
+            <Link href={`/${profileBranch}/account/profile`}>{text.profile}</Link>
           </nav>
           <a className="landing-brand" href="#landing-top" aria-label={text.logoAlt}>
             <Logo priority />
@@ -61,10 +57,11 @@ export function LandingPage() {
             className="landing-hero-wordmark"
             src={siteAssets.logo}
             alt={text.logoAlt}
-            width={590}
-            height={420}
+            width={560}
+            height={270}
             priority
           />
+          <p className="landing-hero-slogan" lang="ar" dir="rtl">{copy.heroSlogan}</p>
           <h1>{copy.heroTitle}</h1>
           <p className="landing-hero-description">{copy.heroDescription}</p>
           <div className="landing-branch-grid" role="group" aria-label={text.chooseBranch}>
@@ -125,7 +122,7 @@ export function LandingPage() {
         <SilkCanvas className="landing-story-image" src="/green-silk.jpg" />
         <div className="landing-story-shade" aria-hidden="true" />
         <div className="landing-story-content">
-          <Image src={siteAssets.logo} alt={text.logoAlt} width={590} height={420} />
+          <Image src={siteAssets.logo} alt={text.logoAlt} width={560} height={270} />
           <h2>{copy.storyTitle}</h2>
           <p>{copy.storyDescription}</p>
         </div>
@@ -207,7 +204,11 @@ export function LandingPage() {
           <div className="landing-social">
             <h3>{copy.footerFollow}</h3>
             <div>
-              {copy.socialLinks.map((link) => <span key={link}>{link}</span>)}
+              {SOCIAL_LINKS.map((link) => (
+                <a key={link.id} href={link.href} target="_blank" rel="noopener noreferrer">
+                  {link.label[language]}
+                </a>
+              ))}
             </div>
           </div>
         </div>

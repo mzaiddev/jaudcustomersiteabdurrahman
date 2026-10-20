@@ -69,6 +69,7 @@ export type BookingDraft = {
   specialist: string;
   date: string;
   time: string;
+  addOns: string[];
 };
 
 export const emptyDraft: BookingDraft = {
@@ -78,6 +79,7 @@ export const emptyDraft: BookingDraft = {
   specialist: "any",
   date: "",
   time: "",
+  addOns: [],
 };
 
 export function draftKey(branch: string, product: string, entitlementId?: string) {

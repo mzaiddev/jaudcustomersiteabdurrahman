@@ -17,6 +17,8 @@ import {
   riyadhParts,
   riyadhToday,
   addDays,
+  addOnMinutes,
+  validAddOns,
   weekdayOf,
 } from "./rules";
 import { readStoredValue, subscribeStored, writeStored } from "./storage";
@@ -433,7 +435,7 @@ export function computeSlots(db: Db, query: SlotQuery, now = Date.now()): SlotOp
   if (query.date < today || query.date > addDays(today, RULES.maxDaysAhead)) return [];
 
   const guests = pkg ? Math.max(pkg.guests, query.guests ?? pkg.guests) : 1;
-  const duration = product.minutes * guests;
+  const duration = product.minutes * guests + (pkg ? 0 : Math.max(0, query.extraMinutes ?? 0));
   const serviceId = pkg ? pkg.serviceId : service?.id;
   const weekday = weekdayOf(query.date);
   const holdMs = RULES.slotHoldMinutes * 60_000;
@@ -702,12 +704,14 @@ export async function createBooking(customerId: string, input: NewBookingInput):
     }
 
     const guests = guestsFor(product, input.guests);
+    const addOns = pkg ? [] : validAddOns(input.addOns);
     const slot = computeSlots(db, {
       locationId: input.locationId,
       serviceId: service?.id,
       packageId: pkg?.id,
       date: riyadhParts(input.startsAt).date,
       guests,
+      extraMinutes: addOnMinutes(addOns),
     }).find((option) => new Date(option.startsAt).getTime() === new Date(input.startsAt).getTime());
     if (!slot) throw new EngineError("SLOT_UNAVAILABLE", "taken");
 
@@ -716,7 +720,7 @@ export async function createBooking(customerId: string, input: NewBookingInput):
     else if (!slot.specialistIds.includes(specialistId)) throw new EngineError("SLOT_UNAVAILABLE", "specialist_busy");
 
     const now = new Date().toISOString();
-    const price = priceFor(product, guests);
+    const price = priceFor(product, guests, addOns);
     const refNumber = nextRef("BK", db.bookings.map((b) => b.ref), 1001);
     const bookingId = uid("bk");
     const covered = Boolean(entitlement);
@@ -765,6 +769,7 @@ export async function createBooking(customerId: string, input: NewBookingInput):
       startsAt: slot.startsAt,
       endsAt: slot.endsAt,
       guests,
+      addOns: addOns.length > 0 ? addOns : undefined,
       price: pkg ? 0 : price.total,
       notes: userNotes || undefined,
       history: [{ at: now, by: CUSTOMER_ACTOR, action: "created", note: "Website" }],
@@ -897,6 +902,7 @@ export async function rescheduleBooking(
       packageId: pkg?.id,
       date: riyadhParts(input.startsAt).date,
       guests: booking.guests,
+      extraMinutes: addOnMinutes(booking.addOns),
       excludeBookingId: booking.id,
     }).find((option) => new Date(option.startsAt).getTime() === new Date(input.startsAt).getTime());
     if (!slot) throw new EngineError("SLOT_UNAVAILABLE", "taken");

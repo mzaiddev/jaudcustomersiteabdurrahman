@@ -66,8 +66,8 @@ export function useProducts(branch: Branch) {
         : product.repeat
           ? product.group
             ? isArabic
-              ? `${formatNumber(product.sessions)} مواعيد للزوجين`
-              : `${formatNumber(product.sessions)} couples appointments`
+              ? `${formatNumber(product.sessions)} زيارات لشخصين`
+              : `${formatNumber(product.sessions)} visits for two`
             : `${formatNumber(product.sessions)} ${text.sessions}`
           : product.group
             ? product.id === "friends"

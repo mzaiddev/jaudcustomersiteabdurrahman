@@ -154,7 +154,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       <footer className="site-footer">
         <Brand href={base} />
         <span className="footer-message">{text.footerLine}</span>
-        <span className="copyright">© ALJOUDI SPA</span>
+        <span className="copyright">© ALJOUDI WELLNESS SPA</span>
         <div className="footer-links">
           <Link href={base}>{text.home}</Link>
           <Link href={`${base}/services`}>{text.services}</Link>
