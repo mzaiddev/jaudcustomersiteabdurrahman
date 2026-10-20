@@ -2,10 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { notFound, useParams, usePathname } from "next/navigation";
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
-import { Icon } from "./components";
-import { BRANCH_KEY, writeStored } from "./storage";
+import { notFound, useParams } from "next/navigation";
+import { useEffect, useSyncExternalStore } from "react";
 import { productCatalogue } from "./product-catalogue";
 import { siteAssets } from "./site-assets";
 import {
@@ -183,91 +181,5 @@ export function ProductCareInfo() {
         </ul>
       </details>
     </div>
-  );
-}
-
-export function SiteShell({ children }: { children: ReactNode }) {
-  const branch = useBranch();
-  const pathname = usePathname();
-  const { isArabic, text, toggleLanguage } = useLanguage();
-  const base = `/${branch}`;
-  const isActive = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
-
-  useEffect(() => {
-    writeStored(BRANCH_KEY, branch);
-  }, [branch]);
-
-  useEffect(() => {
-    window.scrollTo({ top: 0 });
-  }, [pathname]);
-
-  return (
-    <main className="app-shell" dir={isArabic ? "rtl" : "ltr"}>
-      <header className="site-header">
-        <Brand href={base} />
-
-        <nav
-          className="main-nav"
-          dir={isArabic ? "rtl" : "ltr"}
-          aria-label={isArabic ? "التنقل الرئيسي" : "Main navigation"}
-        >
-          <Link className={`nav-link${pathname === base ? " active" : ""}`} href={base}>
-            {text.home}
-          </Link>
-          <Link className={`nav-link${isActive(`${base}/services`) ? " active" : ""}`} href={`${base}/services`}>
-            {text.services}
-          </Link>
-          <Link className={`nav-link${isActive(`${base}/packages`) ? " active" : ""}`} href={`${base}/packages`}>
-            {text.packages}
-          </Link>
-          <button
-            className="nav-link nav-link-unavailable"
-            type="button"
-            disabled
-            title={text.profileUnavailable}
-          >
-            {text.profile}
-          </button>
-        </nav>
-
-        <div className="header-actions" dir={isArabic ? "rtl" : "ltr"}>
-          <Link
-            className="header-branch"
-            href="/"
-            aria-label={isArabic ? "تغيير الفرع" : "Change branch"}
-          >
-            <Icon name="location" />
-            <span>{text.branches[branch]}</span>
-          </Link>
-          <span className="header-divider" aria-hidden="true" />
-          <button
-            className="language-switch"
-            type="button"
-            onClick={toggleLanguage}
-            aria-label={isArabic ? "Switch language to English" : "تغيير اللغة إلى العربية"}
-          >
-            <Icon name="globe" />
-            <span>{text.language}</span>
-          </button>
-          <span className="header-design-icons" aria-hidden="true">
-            <Icon name="user" />
-            <Icon name="cart" />
-          </span>
-        </div>
-      </header>
-
-      {children}
-
-      <footer className="site-footer">
-        <Brand href={base} />
-        <span className="footer-message">{text.footerLine}</span>
-        <span className="copyright">© ALJOUDI SPA</span>
-        <div className="footer-links">
-          <Link href={base}>{text.home}</Link>
-          <Link href={`${base}/services`}>{text.services}</Link>
-          <Link href={`${base}/booking`}>{text.bookings}</Link>
-        </div>
-      </footer>
-    </main>
   );
 }

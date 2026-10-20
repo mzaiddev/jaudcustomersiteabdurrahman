@@ -4,7 +4,7 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 const listeners = new Set<() => void>();
 
-function read(key: string): string | null {
+export function readStoredValue(key: string): string | null {
   try {
     return window.localStorage.getItem(key);
   } catch {
@@ -12,7 +12,7 @@ function read(key: string): string | null {
   }
 }
 
-function subscribe(listener: () => void) {
+export function subscribeStored(listener: () => void) {
   listeners.add(listener);
   window.addEventListener("storage", listener);
 
@@ -31,11 +31,20 @@ export function writeStored(key: string, value: unknown) {
   listeners.forEach((listener) => listener());
 }
 
+export function removeStored(key: string) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Nothing to clean up when storage is unavailable.
+  }
+  listeners.forEach((listener) => listener());
+}
+
 /** Reads and writes a JSON value in localStorage, shared across components and tabs. */
 export function useStored<T>(key: string, initial: T): [T, (next: T) => void] {
   const raw = useSyncExternalStore(
-    subscribe,
-    () => read(key),
+    subscribeStored,
+    () => readStoredValue(key),
     () => null,
   );
   const value = useMemo<T>(() => {
@@ -52,22 +61,27 @@ export function useStored<T>(key: string, initial: T): [T, (next: T) => void] {
   return [value, set];
 }
 
+/** In-progress booking, kept per city and product so it survives the login redirect. */
 export type BookingDraft = {
-  specialist: string;
-  date: string;
-  time: string;
-  product?: string;
-};
-
-export type SavedBooking = {
-  id: string;
-  branch: string;
-  product: string;
+  addressId: string;
+  guests: number;
+  notes: string;
   specialist: string;
   date: string;
   time: string;
 };
 
-export const DRAFT_KEY = "joud-booking-draft";
-export const BOOKINGS_KEY = "joud-bookings";
+export const emptyDraft: BookingDraft = {
+  addressId: "",
+  guests: 0,
+  notes: "",
+  specialist: "any",
+  date: "",
+  time: "",
+};
+
+export function draftKey(branch: string, product: string, entitlementId?: string) {
+  return `joud-draft-${branch}-${product}${entitlementId ? `-${entitlementId}` : ""}`;
+}
+
 export const BRANCH_KEY = "joud-branch";

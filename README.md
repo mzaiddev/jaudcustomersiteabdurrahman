@@ -2,7 +2,7 @@
 
 An Arabic-first, responsive website experience for AlJoudi Spa (الجودي سبا), with an English-language option. The interface is based on the shared Canva design and introduces visitors to the spa, its treatments and packages, and an appointment-booking flow.
 
-> **Project status:** This repository contains a front-end prototype. Booking selections and availability are demonstration UI only; there is no booking API, payment processing, or persistent customer data.
+> **Project status:** Front-end prototype running on a mock engine. Sign-in, bookings, packages and payments are fully simulated and stored in the browser (`localStorage`); there is no backend or real payment. See `docs/customer-contract.md` for how the mock maps to a real API and the admin app.
 
 ## Design reference
 
@@ -19,7 +19,12 @@ The visual direction is based on the [AlJoudi Spa Canva design](https://www.canv
 - Individual-session and package detail views with booking actions, add-ons, and before/after care guidance.
 - The 16 individual sessions and packages use the reference catalogue's listed prices, descriptions, durations, and group terms; VIP detox products are shown for Riyadh only.
 - Product image placeholders in catalogue and detail views for project-owned photography.
-- Appointment selection interface with specialist, date, and time selection.
+- Phone-number sign-in and registration with a mock OTP (any 4–6 digit code). Booking requires an account.
+- Booking flow: visit address, guests and add-ons, specialist and computed time slots (schedules, leaves, travel gaps), review and mock payment (Mada, card, Apple Pay, pay later with a 10-minute hold).
+- Package purchase with its first visit, remaining-session booking, and per-package session history.
+- Confirmation page with reference number and calendar (.ics) download.
+- Account area: bookings (upcoming, past, cancelled) with cancel and reschedule, packages, saved addresses and profile.
+- Data model and rules mirror the admin app so bookings made here appear correctly in the admin.
 - Language preference saved in browser local storage.
 - Brand and design images served locally from `public/`.
 
@@ -28,7 +33,7 @@ The visual direction is based on the [AlJoudi Spa Canva design](https://www.canv
 - [Next.js](https://nextjs.org/) 16 App Router
 - [React](https://react.dev/) 19
 - [TypeScript](https://www.typescriptlang.org/)
-- [Tailwind CSS](https://tailwindcss.com/) 4 tooling, with the application styles in `src/app/globals.css`
+- [Tailwind CSS](https://tailwindcss.com/) 4 tooling, with the application styles in `src/app/globals.css` and `src/app/flow.css` and `src/app/flow.css`
 - [ESLint](https://eslint.org/) 9
 - Noto Sans Arabic and Geist Mono via `next/font/google`
 

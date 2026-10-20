@@ -1,5 +1,5 @@
 import { Suspense, type ReactNode } from "react";
-import { SiteShell } from "../site-ui";
+import { SiteShell } from "../shell";
 import { branches } from "../site-data";
 
 export function generateStaticParams() {

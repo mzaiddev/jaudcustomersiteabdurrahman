@@ -1,11 +1,12 @@
-import { branches } from "../../../site-data";
+import { redirect } from "next/navigation";
 import { productCatalogue } from "../../../product-catalogue";
-import { BookingView } from "../../../views";
+import { branches } from "../../../site-data";
 
 export function generateStaticParams() {
   return branches.flatMap((branch) => productCatalogue.map((p) => ({ branch, product: p.id })));
 }
 
-export default function Page() {
-  return <BookingView />;
+export default async function Page({ params }: PageProps<"/[branch]/booking/[product]">) {
+  const { branch, product } = await params;
+  redirect(`/${branch}/book/${product}`);
 }

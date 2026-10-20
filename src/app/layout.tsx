@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, IBM_Plex_Sans_Arabic, Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
+import "./flow.css";
 
 const notoSansArabic = Noto_Sans_Arabic({
   variable: "--font-noto-sans-arabic",

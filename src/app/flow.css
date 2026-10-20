@@ -1,0 +1,1069 @@
+/* Sign in, booking flow, payment and account screens.
+   Uses the tokens from globals.css (--green, --line, --sage, …). */
+
+.flow-loading {
+  display: flex;
+  min-height: 40vh;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--stone);
+  font-size: 14px;
+}
+
+.flow-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--sage-light);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: flow-spin 800ms linear infinite;
+}
+
+@keyframes flow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+.flow-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 14px 0;
+  padding: 11px 13px;
+  border: 1px solid #dce6d8;
+  background: #f4f7f1;
+  color: var(--green);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.flow-notice .icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+.flow-notice-error {
+  border-color: #ecc9c2;
+  background: #fbf1ee;
+  color: #9a3a2b;
+}
+
+.flow-notice-success {
+  border-color: #cfe2cc;
+  background: #eef6ec;
+}
+
+.flow-muted {
+  margin: 8px 0 0;
+  color: var(--stone);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.flow-step {
+  display: grid;
+  gap: 28px;
+}
+
+.flow-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.flow-actions .button {
+  min-width: 150px;
+  font-size: 13px;
+}
+
+.flow-inline-button {
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.flow-panel {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  background: #fffefa;
+}
+
+.flow-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.flow-form-grid h3,
+.flow-form-grid .flow-notice,
+.flow-form-grid .flow-actions,
+.flow-form-grid .card-test-note {
+  grid-column: 1 / -1;
+}
+
+.flow-form-grid h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.address-form {
+  margin-top: 18px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: #fffefa;
+}
+
+.flow-field {
+  display: grid;
+  gap: 7px;
+}
+
+.flow-field label {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.flow-field small {
+  color: var(--stone);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.flow-field .flow-field-error,
+.flow-field.has-error small {
+  color: #9a3a2b;
+}
+
+.flow-field input,
+.flow-field select,
+.flow-textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 13px;
+  border: 1px solid #d9d9ce;
+  border-radius: 2px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.flow-textarea {
+  resize: vertical;
+}
+
+.flow-field input:focus-visible,
+.flow-field select:focus-visible,
+.flow-textarea:focus-visible {
+  border-color: var(--green);
+  outline: 2px solid #b5cabb;
+  outline-offset: 1px;
+}
+
+.flow-field input[readonly] {
+  background: #f4f2eb;
+  color: #6d7167;
+}
+
+.flow-field.has-error input,
+.flow-field.has-error .phone-input {
+  border-color: #c96a5a;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eeece4;
+  color: #5d6356;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.status-confirmed,
+.pay-paid,
+.state-active {
+  background: #e3eddf;
+  color: #2c5f2d;
+}
+
+.status-pending,
+.pay-pending,
+.pay-unpaid,
+.state-unpaid {
+  background: #f6ecd2;
+  color: #7a5b13;
+}
+
+.status-cancelled,
+.pay-failed,
+.state-expired {
+  background: #f5e0db;
+  color: #9a3a2b;
+}
+
+.status-completed,
+.state-used_up {
+  background: #e4e9ee;
+  color: #3e5568;
+}
+
+/* stepper */
+.flow-stepper {
+  margin: 0 0 28px;
+  padding: 17px 19px;
+  list-style: none;
+}
+
+.flow-stepper .progress-step {
+  flex: 1 1 auto;
+  font-size: 12px;
+}
+
+.flow-stepper .progress-step:last-child {
+  flex: 0 0 auto;
+}
+
+.flow-stepper .progress-line {
+  min-width: 14px;
+  margin-inline-start: 4px;
+}
+
+/* address, add-on and payment pickers */
+.address-list,
+.pay-methods {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.pay-methods {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.address-card,
+.pay-method {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: #fffefa;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 14px;
+  text-align: start;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.address-card .icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: var(--green);
+}
+
+.address-card > span {
+  display: grid;
+  gap: 3px;
+}
+
+.address-card small {
+  color: var(--stone);
+  font-size: 12px;
+}
+
+.address-card.selected,
+.pay-method.selected {
+  border-color: var(--green);
+  background: #f5f7f2;
+}
+
+.address-card .selected-mark,
+.pay-method .selected-mark {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.flow-add-link {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.guest-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  background: #fffefa;
+}
+
+.guest-stepper button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.guest-stepper button:disabled {
+  opacity: 0.4;
+}
+
+.guest-stepper output {
+  min-width: 90px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.flow-facts {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.flow-facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.flow-facts .icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin-top: 4px;
+  color: var(--green);
+}
+
+.card-form {
+  margin-top: 16px;
+}
+
+/* specialists, calendar and slots: larger text than the original prototype */
+.flow-specialist-grid {
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+}
+
+.flow-specialist-grid .specialist-card {
+  min-height: 150px;
+  font-size: 13px;
+}
+
+.flow-specialist-grid .specialist-card small {
+  color: var(--stone);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.specialist-name {
+  color: var(--ink);
+  text-align: center;
+}
+
+.booking-screen .calendar-day {
+  font-size: 13px;
+}
+
+.booking-screen .calendar-weekday {
+  font-size: 11px;
+}
+
+.calendar-day.has-slots:not(.selected) {
+  border-color: #d3ddd0;
+  background: #f6f9f4;
+  color: var(--green);
+}
+
+.booking-screen .time-option {
+  min-height: 40px;
+  font-size: 13px;
+}
+
+.booking-screen .selected-date {
+  font-size: 12px;
+}
+
+.booking-screen .booking-summary .summary-row,
+.booking-screen .booking-summary .summary-price,
+.booking-screen .booking-summary .summary-row strong,
+.booking-screen .booking-summary .summary-row > span,
+.booking-screen .booking-summary .summary-price > span,
+.booking-screen .booking-summary .summary-package span,
+.booking-screen .booking-summary .summary-package small,
+.booking-screen .booking-summary .secure-note {
+  font-size: 12px;
+}
+
+.booking-screen .booking-summary .summary-package strong {
+  font-size: 13px;
+}
+
+.booking-screen .booking-summary .summary-price strong {
+  font-size: 15px;
+}
+
+/* sign in */
+.auth-screen {
+  display: grid;
+  min-height: 60vh;
+  place-items: center;
+  padding-block: 40px;
+}
+
+.auth-card {
+  width: min(100%, 440px);
+  padding: 32px 28px;
+  border: 1px solid var(--line);
+  background: #fffefa;
+}
+
+.auth-card form {
+  display: grid;
+  gap: 18px;
+}
+
+.auth-card h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.auth-lead {
+  margin: 0;
+  color: var(--stone);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.auth-submit {
+  width: 100%;
+  font-size: 14px;
+}
+
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-links .text-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.phone-input {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #d9d9ce;
+  background: #fff;
+}
+
+.phone-input:focus-within {
+  border-color: var(--green);
+  outline: 2px solid #b5cabb;
+  outline-offset: 1px;
+}
+
+.phone-prefix {
+  display: grid;
+  padding-inline: 14px;
+  place-items: center;
+  border-inline-end: 1px solid #d9d9ce;
+  background: #f4f2eb;
+  color: var(--stone);
+  font-size: 14px;
+}
+
+.flow-field .phone-input input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+}
+
+.code-input {
+  text-align: center;
+  font-size: 20px;
+}
+
+.code-input:not(:placeholder-shown) {
+  letter-spacing: 0.4em;
+}
+
+/* header account controls */
+.header-signin,
+.header-icon-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.header-signin .icon,
+.header-icon-link .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.account-menu {
+  position: relative;
+}
+
+.account-menu-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  inset-inline-end: 0;
+  display: grid;
+  min-width: 220px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  background: #fffefa;
+  box-shadow: 0 14px 30px rgb(52 76 55 / 12%);
+}
+
+.account-menu-panel a,
+.account-menu-panel button {
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: start;
+}
+
+.account-menu-panel a:hover,
+.account-menu-panel button:hover {
+  background: var(--sage-light);
+}
+
+.account-menu-name {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 10px 12px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.account-menu-name strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* account screens */
+.account-screen {
+  padding-top: 40px;
+  padding-bottom: 48px;
+}
+
+.account-heading {
+  margin-bottom: 20px;
+  text-align: start;
+}
+
+.account-heading h1 {
+  margin-inline: 0;
+}
+
+.account-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.account-nav-link {
+  padding: 10px 14px;
+  border-bottom: 2px solid transparent;
+  color: var(--stone);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.account-nav-link.active {
+  border-bottom-color: var(--green);
+  color: var(--green);
+}
+
+.account-tabs {
+  margin-bottom: 22px;
+}
+
+.account-tabs .service-tab {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.booking-card-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.package-card-list {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.booking-card,
+.package-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  background: #fffefa;
+}
+
+.package-card {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.booking-card-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.booking-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.booking-card-top strong {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.booking-card-when,
+.booking-card-meta,
+.booking-card-ref {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--stone);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.booking-card-when {
+  color: var(--ink);
+}
+
+.booking-card-when .icon {
+  width: 15px;
+  height: 15px;
+  color: var(--green);
+}
+
+.booking-card-cta {
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+
+.progress-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--sage-light);
+}
+
+.progress-bar span {
+  display: block;
+  height: 100%;
+  background: var(--green);
+}
+
+.empty-state {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding: 32px 24px;
+  border: 1px dashed #d4d8cb;
+  background: #fffefa;
+  color: var(--stone);
+  font-size: 14px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 28px;
+}
+
+.detail-list {
+  display: grid;
+  margin: 0;
+  border: 1px solid var(--line);
+  background: #fffefa;
+}
+
+.detail-list > div {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 14px;
+  padding: 13px 18px;
+  border-bottom: 1px solid #efede7;
+}
+
+.detail-list > div:last-child {
+  border-bottom: 0;
+}
+
+.detail-list dt {
+  color: var(--stone);
+  font-size: 13px;
+}
+
+.detail-list dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.detail-side {
+  display: grid;
+  gap: 14px;
+}
+
+.detail-side h2,
+.account-subtitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.account-subtitle {
+  margin-top: 36px;
+  margin-bottom: 12px;
+}
+
+.detail-actions {
+  margin-top: 24px;
+}
+
+.history-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-list li {
+  display: grid;
+  gap: 2px;
+  padding-inline-start: 14px;
+  border-inline-start: 2px solid var(--sage);
+  font-size: 13px;
+}
+
+.history-list strong {
+  font-weight: 500;
+}
+
+.history-list span,
+.history-list small {
+  color: var(--stone);
+}
+
+.button.danger {
+  border-color: #d9a79d;
+  color: #9a3a2b;
+}
+
+.button.danger:hover:not(:disabled) {
+  background: #fbf1ee;
+}
+
+.session-timeline {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.session-timeline li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  background: #fffefa;
+}
+
+.session-timeline li > div {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.session-timeline li strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.session-timeline li span,
+.session-timeline li small {
+  color: var(--stone);
+}
+
+.session-free {
+  border-style: dashed;
+  background: transparent;
+}
+
+.session-index {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--sage-light);
+  color: var(--green);
+  font-size: 13px;
+}
+
+.session-book {
+  min-height: 38px;
+  font-size: 13px;
+}
+
+/* confirmation */
+.confirmation-screen {
+  display: grid;
+  place-items: center;
+  padding-block: 40px 56px;
+}
+
+.confirmation-card {
+  display: grid;
+  width: min(100%, 560px);
+  gap: 18px;
+  padding: 32px 28px;
+  border: 1px solid var(--line);
+  background: #fffefa;
+  text-align: center;
+}
+
+.confirmation-card h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 500;
+}
+
+.confirmation-card .detail-list {
+  text-align: start;
+}
+
+.confirmation-mark {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  margin-inline: auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+}
+
+.confirmation-mark.held {
+  background: #c99a2e;
+}
+
+.confirmation-mark .icon {
+  width: 26px;
+  height: 26px;
+}
+
+.confirmation-ref {
+  margin: 0;
+  color: var(--green);
+  font-size: 16px;
+}
+
+.confirmation-actions {
+  justify-content: center;
+}
+
+@media (max-width: 760px) {
+  .flow-form-grid,
+  .detail-grid,
+  .pay-methods {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .detail-list > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .package-card-list {
+    grid-template-columns: 1fr;
+  }
+
+  .flow-stepper .progress-step {
+    flex-direction: column;
+  }
+
+  .flow-stepper .progress-line {
+    display: none;
+  }
+
+  .flow-actions .button {
+    flex: 1 1 140px;
+  }
+
+  .auth-card,
+  .confirmation-card {
+    padding: 24px 18px;
+  }
+
+  .session-timeline li {
+    flex-wrap: wrap;
+  }
+}
+
+/* sign in / create account tabs */
+.auth-card-wide {
+  width: min(100%, 640px);
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.auth-tab {
+  padding: 11px 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--stone);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.auth-tab.active {
+  border-bottom-color: var(--green);
+  color: var(--green);
+}
+
+.auth-section {
+  margin: 6px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.auth-section-hint {
+  margin: -8px 0 0;
+}
+
+.address-card-disabled {
+  cursor: default;
+  border-style: dashed;
+  background: transparent;
+}
+
+.address-list-other {
+  margin-top: 18px;
+}
+
+.address-list-other .flow-muted {
+  margin: 0;
+}
+
+.address-card-disabled .text-link {
+  font-size: 12px;
+}
+
+.add-location-button {
+  margin-top: 16px;
+  justify-content: center;
+  font-size: 13px;
+}
