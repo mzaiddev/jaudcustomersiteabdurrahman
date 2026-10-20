@@ -61,7 +61,7 @@ export function LandingPage() {
             height={270}
             priority
           />
-          <p className="landing-hero-slogan" lang="ar" dir="rtl">{copy.heroSlogan}</p>
+          <p className="landing-hero-slogan">{copy.heroSlogan}</p>
           <h1>{copy.heroTitle}</h1>
           <p className="landing-hero-description">{copy.heroDescription}</p>
           <div className="landing-branch-grid" role="group" aria-label={text.chooseBranch}>

@@ -269,7 +269,7 @@ export const landingCopy = {
     aboutNav: "About AlJoudi",
     faqNav: "FAQs",
     contactNav: "Contact us",
-    heroSlogan: "جودي كل الجود لك",
+    heroSlogan: "Joudi — all generosity, just for you",
     heroTitle: "Your moment of care starts here",
     heroDescription: "Choose your branch and explore the sessions and packages available to you.",
     heroTagline: "Care and wellness, in the comfort of home",
