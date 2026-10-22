@@ -11,11 +11,13 @@ export function useAuth(): { customer: Customer | null; ready: boolean; logout: 
   const { db, ready } = useDb();
   const customer = db.customers.find((item) => item.id === db.sessionCustomerId) ?? null;
 
+  // Also runs when someone signs in, so a due reminder shows up straight away.
+  const customerId = customer?.id;
   useEffect(() => {
     sweepHolds();
     const timer = setInterval(sweepHolds, 30_000);
     return () => clearInterval(timer);
-  }, []);
+  }, [customerId]);
 
   return { customer, ready, logout };
 }

@@ -7,7 +7,8 @@ import { useAuth } from "./auth";
 import { Field, FlowNotice, PageLoading, useFlow } from "./flow-ui";
 import { locations } from "./mock-data";
 import { phoneIsRegistered, registerCustomer, sendOtp, validateAddress, verifyOtp } from "./mock-engine";
-import { isMapLink, isValidPhone, normalizePhone, parseMapLink, toWesternDigits } from "./rules";
+import { MapPicker, googleMapsLink } from "./map-picker";
+import { isValidPhone, normalizePhone, parseMapLink, toWesternDigits } from "./rules";
 import { useBranch } from "./site-ui";
 import { EngineError, type LocationId } from "./types";
 
@@ -70,7 +71,7 @@ export function AuthView() {
       notes: notes.trim() || undefined,
       lat: point?.lat,
       lng: point?.lng,
-      mapLink: mapLink.trim() || undefined,
+      mapLink: point ? googleMapsLink(point) : undefined,
       locationId: city,
     };
   }
@@ -89,8 +90,7 @@ export function AuthView() {
       if (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim())) return setError(t.errEmail);
       if (!district.trim()) return setError(t.errDistrict);
       if (!street.trim()) return setError(t.errStreet);
-      if (!mapLink.trim()) return setError(t.errMapLink);
-      if (!isMapLink(mapLink)) return setError(t.errMapLinkInvalid);
+      if (!parseMapLink(mapLink)) return setError(t.errPinLocation);
       try {
         validateAddress(addressInput());
       } catch (failure) {
@@ -266,9 +266,16 @@ export function AuthView() {
                       />
                     </Field>
                   </div>
-                  <Field label={t.mapLink} hint={t.mapLinkHint} htmlFor="reg-map">
-                    <input id="reg-map" value={mapLink} onChange={(event) => setMapLink(event.target.value)} dir="ltr" />
-                  </Field>
+                  <MapPicker
+                    locationId={city}
+                    value={parseMapLink(mapLink)}
+                    onChange={(point) => setMapLink(googleMapsLink(point))}
+                    fields={{ district, street }}
+                    onAddress={(guess) => {
+                      if (guess.district) setDistrict(guess.district);
+                      if (guess.street) setStreet(guess.street);
+                    }}
+                  />
                 </>
               )}
 

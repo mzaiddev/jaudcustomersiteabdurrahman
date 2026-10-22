@@ -4,6 +4,7 @@ export const siteAssets: {
   welcomeVideo: string;
   icons: Record<
     | "arrow"
+    | "bell"
     | "calendar"
     | "cart"
     | "check"
@@ -38,6 +39,7 @@ export const siteAssets: {
   welcomeVideo: "/joud-spa-silk.mp4",
   icons: {
     arrow: "",
+    bell: "",
     calendar: "",
     cart: "/cart.png",
     check: "",

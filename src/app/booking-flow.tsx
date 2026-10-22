@@ -15,7 +15,7 @@ import {
   useFlow,
   useNow,
 } from "./flow-ui";
-import { fill } from "./flow-copy";
+import { countLabel, fill } from "./flow-copy";
 import {
   computeSlots,
   createBooking,
@@ -33,16 +33,18 @@ import {
   ADD_ONS,
   ADD_ON_PRICE,
   addMonthsIso,
-  addOnMinutes,
+  addOnCost,
+  cleanAddOnLines,
   guestsFor,
-  isMapLink,
   parseMapLink,
   priceFor,
   riyadhParts,
   sessionsLeft,
-  validAddOns,
+  visitAddOnMinutes,
+  type AddOnLine,
 } from "./rules";
-import { addOnLabels, addOnNames as namesFor } from "./site-data";
+import { MapPicker, googleMapsLink } from "./map-picker";
+import { addOnLabels, addOnName } from "./site-data";
 import { useBranch } from "./site-ui";
 import { draftKey, emptyDraft, readStoredValue, removeStored, useStored, type BookingDraft } from "./storage";
 import { EngineError, type Customer, type Entitlement, type LocationId } from "./types";
@@ -121,10 +123,27 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
   const baseGuests = pkg ? pkg.guests : 1;
   const allowsExtraGuests = Boolean(pkg && pkg.extraGuestPrice > 0 && !entitlement);
   const guests = allowsExtraGuests ? guestsFor(product, draft.guests) : baseGuests;
-  const addOns = pkg ? [] : validAddOns(draft.addOns);
-  const extraMinutes = addOnMinutes(addOns);
-  const price = priceFor(product, guests, addOns);
-  const addOnNames = namesFor(language);
+  // Add-ons. Service: 1 visit × 1 person. Package purchase: the customer picks visits and people.
+  // Later package visit: uses the credits bought with the package, plus optional extras paid now.
+  const addOnLines = entitlement ? [] : cleanAddOnLines(draft.addOns, pkg ? pkg.sessions : 1, service ? 1 : guests);
+  const credits = (entitlement?.addOns ?? []).filter((credit) => credit.visitsUsed < credit.visitsTotal);
+  const usedCredits = credits.filter((credit) => !(draft.skipCredits ?? []).includes(credit.id));
+  const extraLines = entitlement ? cleanAddOnLines(draft.extraAddOns, 1, guests) : [];
+  const visitAddOns = entitlement
+    ? [...usedCredits, ...extraLines].map((line) => ({ id: line.id, people: line.people }))
+    : addOnLines.map((line) => ({ id: line.id, people: line.people }));
+  const extraMinutes = visitAddOnMinutes(visitAddOns);
+  const price = priceFor(product, guests, addOnLines);
+  const extrasCost = addOnCost(extraLines);
+  const amountDue = entitlement ? extrasCost : price.total;
+  const lineLabel = (line: AddOnLine) =>
+    [
+      addOnName(line.id, language),
+      pkg && pkg.sessions > 1 && !entitlement ? countLabel(t, "visits", line.visits, flow.formatNumber(line.visits)) : "",
+      line.people > 1 ? countLabel(t, "people", line.people, flow.formatNumber(line.people)) : "",
+    ]
+      .filter(Boolean)
+      .join(" × ");
   const serviceId = pkg ? pkg.serviceId : service?.id;
   const specialistOptions = eligibleSpecialists(branch, serviceId);
   const suggestedId = entitlement ? lastSpecialistFor(db, entitlement.id) : undefined;
@@ -169,9 +188,8 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
     setFormError("");
     if (!form.district.trim()) return setFormError(t.errDistrict);
     if (!form.street.trim()) return setFormError(t.errStreet);
-    if (!form.mapLink.trim()) return setFormError(t.errMapLink);
-    if (!isMapLink(form.mapLink)) return setFormError(t.errMapLinkInvalid);
     const point = parseMapLink(form.mapLink);
+    if (!point) return setFormError(t.errPinLocation);
     setSavingAddress(true);
     try {
       const saved = await saveAddress(customer.id, {
@@ -180,9 +198,9 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
         street: form.street.trim(),
         building: form.building.trim(),
         notes: form.notes.trim() || undefined,
-        lat: point?.lat,
-        lng: point?.lng,
-        mapLink: form.mapLink.trim(),
+        lat: point.lat,
+        lng: point.lng,
+        mapLink: googleMapsLink(point),
         locationId: branch,
       });
       patch({ addressId: saved.id });
@@ -218,7 +236,7 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
     );
   }
 
-  const needsPayment = !entitlement;
+  const needsPayment = !entitlement || extrasCost > 0;
   const canSubmit = Boolean(slot && address) && (method !== "card" || !needsPayment || cardIsValid());
 
   async function submit() {
@@ -236,7 +254,9 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
           specialistId: draft.specialist,
           startsAt: slot.startsAt,
           guests,
-          addOns,
+          addOns: addOnLines,
+          useCredits: usedCredits.map((credit) => credit.id),
+          extraAddOns: extraLines,
           address,
           notes: draft.notes,
         });
@@ -425,14 +445,13 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
                         onChange={(event) => setForm({ ...form, notes: event.target.value })}
                       />
                     </Field>
-                    <Field label={t.mapLink} hint={t.mapLinkHint} htmlFor="addr-map">
-                      <input
-                        id="addr-map"
-                        value={form.mapLink}
-                        onChange={(event) => setForm({ ...form, mapLink: event.target.value })}
-                        dir="ltr"
-                      />
-                    </Field>
+                    <MapPicker
+                      locationId={branch}
+                      value={parseMapLink(form.mapLink)}
+                      onChange={(point) => setForm((current) => ({ ...current, mapLink: googleMapsLink(point) }))}
+                      fields={{ district: form.district, street: form.street }}
+                      onAddress={(guess) => setForm((current) => ({ ...current, ...guess }))}
+                    />
                     {formError && <FlowNotice tone="error">{formError}</FlowNotice>}
                     <div className="flow-actions">
                       <button
@@ -484,36 +503,37 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
                 </fieldset>
               )}
 
-              {service && (
+              {entitlement && credits.length > 0 && (
                 <fieldset className="booking-group">
-                  <legend>{t.addOnsTitle}</legend>
-                  <p className="flow-muted">
-                    {fill(t.addOnsHint, { price: flow.formatNumber(ADD_ON_PRICE), m: flow.formatNumber(20) })}
-                  </p>
-                  <div className="pay-methods add-on-list" role="group" aria-label={t.addOnsTitle}>
-                    {ADD_ONS.map((item, index) => {
-                      const checked = addOns.includes(item.id);
+                  <legend>{t.yourAddOns}</legend>
+                  <p className="flow-muted">{t.yourAddOnsHint}</p>
+                  <div className="pay-methods add-on-list" role="group" aria-label={t.yourAddOns}>
+                    {credits.map((credit) => {
+                      const checked = usedCredits.includes(credit);
                       return (
                         <button
-                          key={item.id}
+                          key={credit.id}
                           type="button"
                           role="checkbox"
                           aria-checked={checked}
                           className={`pay-method add-on-option${checked ? " selected" : ""}`}
                           onClick={() =>
                             patch({
-                              addOns: checked ? addOns.filter((id) => id !== item.id) : [...addOns, item.id],
+                              skipCredits: checked
+                                ? [...(draft.skipCredits ?? []), credit.id]
+                                : (draft.skipCredits ?? []).filter((id) => id !== credit.id),
                               time: "",
                             })
                           }
                         >
                           <span>
-                            <strong>{addOnNames[index]}</strong>
+                            <strong>{addOnName(credit.id, language)}</strong>
                             <small>
-                              {flow.money(ADD_ON_PRICE)} ·{" "}
-                              {item.minutes > 0
-                                ? fill(t.addOnMinutes, { m: flow.formatNumber(item.minutes) })
-                                : t.addOnNoTime}
+                              {credit.people > 1 ? `${countLabel(t, "people", credit.people, flow.formatNumber(credit.people))} · ` : ""}
+                              {fill(t.addOnCreditsLeft, {
+                                left: flow.formatNumber(credit.visitsTotal - credit.visitsUsed),
+                                total: flow.formatNumber(credit.visitsTotal),
+                              })}
                             </small>
                           </span>
                           {checked && <Icon name="check" className="selected-mark" />}
@@ -523,6 +543,22 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
                   </div>
                 </fieldset>
               )}
+
+              <fieldset className="booking-group">
+                <legend>{entitlement ? t.extraAddOns : t.addOnsTitle}</legend>
+                <p className="flow-muted">
+                  {fill(pkg && !entitlement ? t.addOnsPackageHint : t.addOnsHint, {
+                    price: flow.formatNumber(ADD_ON_PRICE),
+                    m: flow.formatNumber(20),
+                  })}
+                </p>
+                <AddOnPicker
+                  lines={entitlement ? extraLines : addOnLines}
+                  maxVisits={pkg && !entitlement ? pkg.sessions : 1}
+                  maxPeople={service ? 1 : guests}
+                  onChange={(lines) => patch(entitlement ? { extraAddOns: lines, time: "" } : { addOns: lines, time: "" })}
+                />
+              </fieldset>
 
               {!address && <p className="flow-muted">{t.pickAddress}</p>}
               <div className="flow-actions">
@@ -696,7 +732,7 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
                       ? t.confirmBooking
                       : method === "later"
                         ? t.holdBooking
-                        : fill(t.payNow, { amount: flow.formatNumber(price.total) })}
+                        : fill(t.payNow, { amount: flow.formatNumber(amountDue) })}
                   <Icon name="arrow" />
                 </button>
               </div>
@@ -737,10 +773,14 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
               <strong>{flow.formatNumber(guests)}</strong>
             </div>
           )}
-          {addOns.length > 0 && (
+          {(addOnLines.length > 0 || visitAddOns.length > 0) && (
             <div className="summary-row">
               <span>{t.priceAddOns}</span>
-              <strong>{addOnLabels(addOns, language)}</strong>
+              <strong>
+                {entitlement
+                  ? addOnLabels(visitAddOns, language)
+                  : addOnLines.map(lineLabel).join(language === "ar" ? "، " : ", ")}
+              </strong>
             </div>
           )}
           <div className="summary-row">
@@ -764,13 +804,27 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
             </strong>
           </div>
           {entitlement ? (
-            <div className="summary-price">
-              <span>{t.priceTotal}</span>
-              <strong>{t.coveredByPackage}</strong>
-            </div>
+            <>
+              {extrasCost > 0 && (
+                <div className="summary-row">
+                  <span>{t.priceBase}</span>
+                  <strong>{t.coveredByPackage}</strong>
+                </div>
+              )}
+              {extrasCost > 0 && (
+                <div className="summary-row">
+                  <span>{t.priceAddOns}</span>
+                  <strong>{flow.money(extrasCost)}</strong>
+                </div>
+              )}
+              <div className="summary-price">
+                <span>{t.priceTotal}</span>
+                <strong>{extrasCost > 0 ? flow.money(extrasCost) : t.coveredByPackage}</strong>
+              </div>
+            </>
           ) : (
             <>
-              {price.extraGuests > 0 && (
+              {(price.extraGuests > 0 || price.addOns > 0) && (
                 <div className="summary-row">
                   <span>{t.priceBase}</span>
                   <strong>{flow.money(price.base)}</strong>
@@ -785,18 +839,10 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
                 </div>
               )}
               {price.addOns > 0 && (
-                <>
-                  <div className="summary-row">
-                    <span>{t.priceBase}</span>
-                    <strong>{flow.money(price.base)}</strong>
-                  </div>
-                  <div className="summary-row">
-                    <span>
-                      {t.priceAddOns} × {flow.formatNumber(addOns.length)}
-                    </span>
-                    <strong>{flow.money(price.addOns)}</strong>
-                  </div>
-                </>
+                <div className="summary-row">
+                  <span>{t.priceAddOns}</span>
+                  <strong>{flow.money(price.addOns)}</strong>
+                </div>
               )}
               <div className="summary-price">
                 <span>{t.priceTotal}</span>
@@ -811,5 +857,117 @@ function BookingFlowInner({ customer, productId }: { customer: Customer; product
         </aside>
       </div>
     </section>
+  );
+}
+
+/** Add-on cards. When the product allows it, a checked add-on shows "visits" and "people" steppers. */
+function AddOnPicker({
+  lines,
+  maxVisits,
+  maxPeople,
+  onChange,
+}: {
+  lines: AddOnLine[];
+  maxVisits: number;
+  maxPeople: number;
+  onChange: (lines: AddOnLine[]) => void;
+}) {
+  const flow = useFlow();
+  const { t, language } = flow;
+
+  function toggle(id: AddOnLine["id"]) {
+    const exists = lines.some((line) => line.id === id);
+    onChange(exists ? lines.filter((line) => line.id !== id) : [...lines, { id, visits: maxVisits, people: maxPeople }]);
+  }
+
+  function change(id: AddOnLine["id"], field: "visits" | "people", value: number) {
+    onChange(lines.map((line) => (line.id === id ? { ...line, [field]: value } : line)));
+  }
+
+  return (
+    <div className="add-on-list add-on-picker" role="group" aria-label={t.addOnsTitle}>
+      {ADD_ONS.map((item) => {
+        const line = lines.find((entry) => entry.id === item.id);
+        const name = addOnName(item.id, language);
+        return (
+          <div className={`add-on-card${line ? " selected" : ""}`} key={item.id}>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={Boolean(line)}
+              className={`pay-method add-on-option${line ? " selected" : ""}`}
+              onClick={() => toggle(item.id)}
+            >
+              <span>
+                <strong>{name}</strong>
+                <small>
+                  {flow.money(ADD_ON_PRICE)}
+                  {maxVisits > 1 || maxPeople > 1 ? ` ${t.addOnPerUnit}` : ""} ·{" "}
+                  {item.minutes > 0 ? fill(t.addOnMinutes, { m: flow.formatNumber(item.minutes) }) : t.addOnNoTime}
+                </small>
+              </span>
+              {line && <Icon name="check" className="selected-mark" />}
+            </button>
+            {line && (maxVisits > 1 || maxPeople > 1) && (
+              <div className="add-on-counts">
+                {maxVisits > 1 && (
+                  <Counter
+                    label={t.addOnVisits}
+                    value={line.visits}
+                    max={maxVisits}
+                    name={name}
+                    onChange={(value) => change(item.id, "visits", value)}
+                  />
+                )}
+                {maxPeople > 1 && (
+                  <Counter
+                    label={t.addOnPeople}
+                    value={line.people}
+                    max={maxPeople}
+                    name={name}
+                    onChange={(value) => change(item.id, "people", value)}
+                  />
+                )}
+                <strong className="add-on-line-total">
+                  {flow.money(ADD_ON_PRICE * line.visits * line.people)}
+                </strong>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Counter({
+  label,
+  value,
+  max,
+  name,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  name: string;
+  onChange: (value: number) => void;
+}) {
+  const { formatNumber } = useFlow();
+  return (
+    <div className="add-on-counter">
+      <span>{label}</span>
+      <div className="guest-stepper">
+        <button type="button" aria-label={`${name} ${label} −`} disabled={value <= 1} onClick={() => onChange(value - 1)}>
+          −
+        </button>
+        <output aria-live="polite">
+          {formatNumber(value)} / {formatNumber(max)}
+        </output>
+        <button type="button" aria-label={`${name} ${label} +`} disabled={value >= max} onClick={() => onChange(value + 1)}>
+          +
+        </button>
+      </div>
+    </div>
   );
 }

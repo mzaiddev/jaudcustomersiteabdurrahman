@@ -9,9 +9,17 @@ export const RULES = {
   packageValidityMonths: 2,
   timezone: "Asia/Riyadh",
   maxDaysAhead: 60,
+  /** A reminder is sent when a visit is closer than this, while it can still be rescheduled online. */
+  reminderWindowHours: 48,
 } as const;
 
-/** Optional extras for individual sessions. Names live in journeyCopy.addOns (same order). */
+/** True while a confirmed visit is 24–48 hours away: time for the "reschedule before it closes" reminder. */
+export function inReminderWindow(booking: { status: string; startsAt: string }, now: number): boolean {
+  const hours = (new Date(booking.startsAt).getTime() - now) / 3_600_000;
+  return booking.status === "confirmed" && hours > RULES.freeChangeWindowHours && hours <= RULES.reminderWindowHours;
+}
+
+/** Optional extras. Names live in journeyCopy.addOns (same order). Price is per person, per visit. */
 export const ADD_ON_PRICE = 35;
 export const ADD_ONS = [
   { id: "head", minutes: 20 },
@@ -20,12 +28,43 @@ export const ADD_ONS = [
 ] as const;
 export type AddOnId = (typeof ADD_ONS)[number]["id"];
 
-export function validAddOns(ids: readonly string[] | undefined): AddOnId[] {
-  return ADD_ONS.filter((item) => ids?.includes(item.id)).map((item) => item.id);
+/** An add-on bought for some number of visits and people (a service is always 1 × 1). */
+export type AddOnLine = { id: AddOnId; visits: number; people: number };
+/** An add-on applied to one visit. */
+export type VisitAddOn = { id: AddOnId; people: number; source: "paid" | "package" };
+
+function isAddOnId(id: unknown): id is AddOnId {
+  return ADD_ONS.some((item) => item.id === id);
 }
 
-export function addOnMinutes(ids: readonly string[] | undefined): number {
-  return ADD_ONS.filter((item) => ids?.includes(item.id)).reduce((sum, item) => sum + item.minutes, 0);
+function clamp(value: unknown, min: number, max: number) {
+  const number = Math.round(Number(value));
+  return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : min;
+}
+
+/** Keeps known add-ons once each, with visits/people inside the product's limits. */
+export function cleanAddOnLines(lines: unknown, maxVisits: number, maxPeople: number): AddOnLine[] {
+  if (!Array.isArray(lines)) return [];
+  const seen = new Set<string>();
+  return lines.flatMap((line) => {
+    const id = (line as { id?: unknown })?.id;
+    if (!isAddOnId(id) || seen.has(id)) return [];
+    seen.add(id);
+    const { visits, people } = line as { visits?: unknown; people?: unknown };
+    return [{ id, visits: clamp(visits, 1, Math.max(1, maxVisits)), people: clamp(people, 1, Math.max(1, maxPeople)) }];
+  });
+}
+
+export function addOnCost(lines: ReadonlyArray<{ visits?: number; people: number }>): number {
+  return lines.reduce((sum, line) => sum + ADD_ON_PRICE * (line.visits ?? 1) * line.people, 0);
+}
+
+/** Extra minutes a visit takes: each massage add-on adds its time for every person who gets it. */
+export function visitAddOnMinutes(addOns: ReadonlyArray<{ id: string; people: number }> | undefined): number {
+  return (addOns ?? []).reduce(
+    (sum, line) => sum + (ADD_ONS.find((item) => item.id === line.id)?.minutes ?? 0) * line.people,
+    0,
+  );
 }
 
 const RIYADH_OFFSET_MINUTES = 180;
@@ -137,18 +176,38 @@ export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; ln
   return 2 * earthKm * Math.asin(Math.sqrt(h));
 }
 
-/** Pulls `lat, lng` out of a pasted map link, like the admin wizard does. */
+const MAP_LINK_PATTERNS = [
+  // Place links: the pin is the !3d…!4d… part (the @… part is only where the map was centred).
+  /!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/,
+  // ?q=24.7,46.7  ?query=…  ?ll=…  ?destination=…
+  /[?&](?:q|query|ll|destination|daddr|center|sll)=\+?(-?\d{1,2}\.\d+)[,+ ]+(-?\d{1,3}\.\d+)/,
+  // …/@24.7136,46.6753,15z
+  /@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/,
+  // Plain "24.7136, 46.6753"
+  /(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/,
+];
+
+/** Pulls the point out of a pasted Google Maps link or plain "lat, lng" text. */
 export function parseMapLink(link: string): { lat: number; lng: number } | null {
-  const match = link.match(/(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
-  if (!match) return null;
-  return { lat: Number(match[1]), lng: Number(match[2]) };
+  let text = link.trim();
+  try {
+    text = decodeURIComponent(text);
+  } catch {
+    // Keep the raw text when it has a stray "%".
+  }
+  for (const pattern of MAP_LINK_PATTERNS) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const lat = Number(match[1]);
+    const lng = Number(match[2]);
+    if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat, lng };
+  }
+  return null;
 }
 
-/** A Google Maps link (full, short share link, or plain "lat, lng"). Required for every visit address. */
-export function isMapLink(link: string): boolean {
-  const value = link.trim();
-  if (parseMapLink(value)) return true;
-  return /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|(www\.)?google\.[a-z.]+\/maps|maps\.google\.[a-z.]+)\S*/i.test(value);
+/** Google's short share links (maps.app.goo.gl/…) hide the point, so they have to be opened to read it. */
+export function isShortMapLink(link: string): boolean {
+  return /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps)\//i.test(link.trim());
 }
 
 export function guestsFor(product: Service | SpaPackage, requested: number): number {
@@ -164,17 +223,17 @@ export type PriceBreakdown = {
   total: number;
 };
 
-/** Package: price + (guests − pkg.guests) × extraGuestPrice. Service: price + add-ons. */
+/** Price + (guests − pkg.guests) × extraGuestPrice + add-ons (35 × visits × people per line). */
 export function priceFor(
   product: Service | SpaPackage,
   guests: number,
-  addOnIds: readonly string[] = [],
+  addOnLines: ReadonlyArray<{ visits?: number; people: number }> = [],
 ): PriceBreakdown {
   const extraGuestCount =
     "sessions" in product ? Math.max(0, guests - product.guests) : 0;
   const extraGuests = "sessions" in product ? extraGuestCount * product.extraGuestPrice : 0;
 
-  const addOns = "sessions" in product ? 0 : validAddOns(addOnIds).length * ADD_ON_PRICE;
+  const addOns = addOnCost(addOnLines);
 
   return {
     base: product.price,

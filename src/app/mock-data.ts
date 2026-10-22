@@ -89,7 +89,8 @@ export const packages: SpaPackage[] = productCatalogue
     name: product.name,
     description: product.description,
     price: product.price,
-    sessions: product.sessions,
+    // Visits to book. One-visit group packages (Friends, Partner) list one session per guest in the catalogue.
+    sessions: product.repeat ? product.sessions : 1,
     guests: product.guests,
     extraGuestPrice: product.extraPrice,
     minutes: product.minutes || MIXED_PACKAGE_MINUTES,

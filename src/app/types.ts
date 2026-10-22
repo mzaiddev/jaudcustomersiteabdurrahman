@@ -2,6 +2,8 @@
 // (admin/jaud-admin/src/api/types.ts) so a booking made here renders in the admin as-is.
 // Money is SAR in major units, VAT-inclusive. Times are ISO 8601 with offset (Asia/Riyadh).
 
+import type { AddOnId, AddOnLine, VisitAddOn } from "./rules";
+
 export type L10n = { ar: string; en: string };
 
 export type LocationId = "khobar" | "riyadh" | "jazan";
@@ -121,8 +123,8 @@ export type Booking = {
   startsAt: string;
   endsAt: string;
   guests: number;
-  /** Optional extras chosen for an individual session. */
-  addOns?: string[];
+  /** Extras on this visit: bought now ("paid") or taken from the package's add-on credits. */
+  addOns?: VisitAddOn[];
   price: number;
   notes?: string;
   followUp?: string;
@@ -156,7 +158,11 @@ export type Entitlement = {
   price: number;
   paymentStatus: PaymentStatus;
   ledger: LedgerEntry[];
+  /** Add-ons bought with the package, used one visit at a time. */
+  addOns?: AddOnCredit[];
 };
+
+export type AddOnCredit = { id: AddOnId; people: number; visitsTotal: number; visitsUsed: number };
 
 export type EntitlementState = "active" | "used_up" | "expired" | "unpaid";
 
@@ -197,9 +203,33 @@ export type NewBookingInput = {
   specialistId: string | "any";
   startsAt: string;
   guests: number;
-  addOns?: string[];
+  /** Service or package purchase: add-ons with visit and people counts. */
+  addOns?: AddOnLine[];
+  /** Later package visit: credit ids to use, plus extras paid for this visit only. */
+  useCredits?: AddOnId[];
+  extraAddOns?: AddOnLine[];
   address: Omit<Address, "id"> & { id?: string };
   notes?: string;
+};
+
+/**
+ * A message for the customer, shown in the bell, on the notifications page and as a pop-up.
+ * The text is built from `kind` and the booking when it is shown (so it follows the language and any later
+ * change of time). A custom message (`kind: "info"`) carries its own text in both languages.
+ */
+export type NotificationKind = "reminder" | "confirmed" | "rescheduled" | "expired" | "info";
+
+export type AppNotification = {
+  id: string;
+  customerId: string;
+  kind: NotificationKind;
+  /** Stops the same message being created twice, e.g. `reminder:bk_1005:2026-10-24T13:00:00.000Z`. */
+  key: string;
+  createdAt: string;
+  readAt?: string;
+  bookingId?: string;
+  /** Only for `kind: "info"`. */
+  message?: { title: { ar: string; en: string }; body: { ar: string; en: string } };
 };
 
 export type Db = {
@@ -208,6 +238,7 @@ export type Db = {
   bookings: Booking[];
   entitlements: Entitlement[];
   payments: Payment[];
+  notifications: AppNotification[];
   /** Customer id of the signed-in customer, if any. */
   sessionCustomerId: string | null;
 };

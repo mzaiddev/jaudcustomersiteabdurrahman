@@ -346,8 +346,8 @@ export const journeyCopy = {
       "لأن كل تفصيلة تصنع فرقًا في تجربتكِ، أضفنا لكِ خيارات مميزة تمنحكِ المزيد من العناية والدلال، لتصممي تجربتكِ بالطريقة التي تحبينها.",
     addOns: [
       "مساج الرأس للاسترخاء: لحظات من الهدوء تساعدكِ على تخفيف التوتر والاستمتاع بالاسترخاء.",
-      "مساج الوجه بالقواشا: عناية لطيفة للوجه باستخدام أداة القواشا وزيت مخصص.",
-      "إضافة تهنئة عيد الميلاد: بالون وبطاقة تهنئة ووردة.",
+      "مساج الوجه بالقواشا: عناية لطيفة للوجه باستخدام أداة القواشا وزيت مخصص، لتجربة تجمع بين التدليل والاهتمام بالبشرة.",
+      "إضافة تهنئة عيد الميلاد: لمسة احتفالية مميزة تشمل بالونًا وبطاقة تهنئة ووردة، لتجعل تجربتكِ أكثر خصوصية.",
     ],
     addOnPrice:
       "سعر الإضافة الواحدة ٣٥ ريالًا. مدة إضافات المساج ٢٠ دقيقة، أما تهنئة عيد الميلاد فهي إضافة احتفالية دون مدة مساج. تضاف قيمتها إلى سعر الجلسة الأساسية.",
@@ -383,9 +383,9 @@ export const journeyCopy = {
     addOnsDescription:
       "Every detail shapes your experience. Choose a personal touch of extra care and pampering.",
     addOns: [
-      "Relaxing head massage: quiet moments to help ease tension and enjoy relaxation.",
-      "Gua sha face massage: gentle facial care using a gua sha tool and a dedicated oil.",
-      "Birthday greeting: a balloon, greeting card and flower.",
+      "Relaxing Head Massage: moments of calm that help ease tension and allow you to enjoy relaxation.",
+      "Gua Sha Facial Massage: gentle facial care using a gua sha tool and a dedicated oil, for an experience that combines pampering with attention to your skin.",
+      "Birthday Greeting Add-on: a special celebratory touch including a balloon, a greeting card and a rose, making your experience more personal.",
     ],
     addOnPrice:
       "Each add-on costs SAR 35. Massage add-ons last 20 minutes; the birthday greeting is a celebration extra without a massage duration. The cost is added to the base session price.",
@@ -416,10 +416,16 @@ export function addOnNames(language: Language): string[] {
   return journeyCopy[language].addOns.map((item) => item.split(/[:：]/)[0].trim());
 }
 
-export function addOnLabels(ids: readonly string[], language: Language): string {
-  const names = addOnNames(language);
-  return ADD_ONS.map((item, index) => (ids.includes(item.id) ? names[index] : ""))
-    .filter(Boolean)
+export function addOnName(id: string, language: Language): string {
+  return addOnNames(language)[ADD_ONS.findIndex((item) => item.id === id)] ?? id;
+}
+
+/** "Head massage × 2 people, Birthday greeting" — for a visit's add-ons. */
+export function addOnLabels(addOns: ReadonlyArray<{ id: string; people: number }>, language: Language): string {
+  const people = (n: number) =>
+    language === "ar" ? (n === 2 ? "شخصان" : `${new Intl.NumberFormat("ar-SA").format(n)} أشخاص`) : `${n} people`;
+  return addOns
+    .map((line) => `${addOnName(line.id, language)}${line.people > 1 ? ` × ${people(line.people)}` : ""}`)
     .join(language === "ar" ? "، " : ", ");
 }
 

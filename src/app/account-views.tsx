@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { notFound, useParams, useRouter } from "next/navigation";
-import { useState, type FormEvent, type ReactNode } from "react";
-import { RequireAuth } from "./auth";
+import { notFound, useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { RequireAuth, useAuth } from "./auth";
 import { Icon } from "./components";
 import {
   EntitlementBadge,
@@ -20,7 +20,7 @@ import {
   useNow,
   type Flow,
 } from "./flow-ui";
-import { fill } from "./flow-copy";
+import { countLabel, fill } from "./flow-copy";
 import {
   canChangeBooking,
   customerBookings,
@@ -29,6 +29,7 @@ import {
   eligibleSpecialists,
   entitlementBookings,
   entitlementState,
+  markNotificationsRead,
   logout,
   payBooking,
   rescheduleBooking,
@@ -37,8 +38,10 @@ import {
   useDb,
 } from "./mock-engine";
 import { findPackage, findSpecialist, locations } from "./mock-data";
-import { RULES, isMapLink, parseMapLink, sessionsLeft } from "./rules";
-import { addOnLabels } from "./site-data";
+import { MapPicker, googleMapsLink } from "./map-picker";
+import { RULES, inReminderWindow, parseMapLink, sessionsLeft, visitAddOnMinutes } from "./rules";
+import { NotificationList, VisitReminder, useNotifications } from "./notifications";
+import { addOnLabels, addOnName } from "./site-data";
 import { useBranch } from "./site-ui";
 import { EngineError, type Address, type Booking, type Customer, type Entitlement, type LocationId } from "./types";
 
@@ -48,12 +51,15 @@ function AccountPage({ children }: { children: (customer: Customer) => ReactNode
   return <RequireAuth fallback={<PageLoading />}>{children}</RequireAuth>;
 }
 
-function AccountNav({ active }: { active: "bookings" | "packages" | "profile" | "addresses" }) {
+function AccountNav({ active }: { active: "bookings" | "packages" | "profile" | "addresses" | "notifications" }) {
   const branch = useBranch();
-  const { t } = useFlow();
+  const { t, formatNumber } = useFlow();
+  const { customer } = useAuth();
+  const { unread } = useNotifications(customer?.id);
   const items = [
     ["bookings", t.myBookings],
     ["packages", t.myPackages],
+    ["notifications", unread > 0 ? `${t.notifTitle} (${formatNumber(unread)})` : t.notifTitle],
     ["addresses", t.myAddresses],
     ["profile", t.myProfile],
   ] as const;
@@ -91,7 +97,172 @@ function sessionNumber(db: ReturnType<typeof useDb>["db"], booking: Booking) {
   return index >= 0 && entitlement ? { index: index + 1, total: entitlement.sessionsTotal } : null;
 }
 
-function BookingCard({ booking, db, flow }: { booking: Booking; db: ReturnType<typeof useDb>["db"]; flow: Flow }) {
+/** Pick a new time for a visit. Used inline on the booking page and inside the modal on the list. */
+function ReschedulePanel({
+  booking,
+  customer,
+  flow,
+  onDone,
+  onClose,
+}: {
+  booking: Booking;
+  customer: Customer;
+  flow: Flow;
+  onDone: () => void;
+  onClose: () => void;
+}) {
+  const { t } = flow;
+  const { db } = useDb();
+  const pkg = findPackage(booking.packageId);
+  const serviceId = pkg ? pkg.serviceId : booking.serviceId;
+  const [slotStart, setSlotStart] = useState("");
+  const [specialist, setSpecialist] = useState("any");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  function describe(failure: unknown) {
+    if (failure instanceof EngineError) {
+      if (failure.code === "SLOT_UNAVAILABLE") return failure.detail === "specialist_busy" ? t.specialistBusy : t.slotTaken;
+      if (failure.code === "PACKAGE_EXPIRED") return t.packageExpired;
+      if (failure.code === "CONFLICT" && failure.detail === "within_window") return t.withinWindow;
+    }
+    return t.genericError;
+  }
+
+  async function confirm() {
+    if (!slotStart) return;
+    setError("");
+    setBusy(true);
+    try {
+      await rescheduleBooking(customer.id, booking.id, {
+        startsAt: slotStart,
+        specialistId: specialist,
+        reason: reason.trim() || t.rescheduleDefaultReason,
+      });
+      onDone();
+    } catch (failure) {
+      setError(describe(failure));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flow-panel">
+      <SlotPicker
+        db={db}
+        query={{
+          locationId: booking.locationId,
+          serviceId: pkg ? undefined : booking.serviceId,
+          packageId: pkg?.id,
+          guests: booking.guests,
+          extraMinutes: visitAddOnMinutes(booking.addOns),
+          excludeBookingId: booking.id,
+        }}
+        specialists={eligibleSpecialists(booking.locationId, serviceId)}
+        specialistId={specialist}
+        startsAt={slotStart}
+        suggestedId={booking.specialistId}
+        onSpecialist={setSpecialist}
+        onSlot={(slot) => setSlotStart(slot?.startsAt ?? "")}
+      />
+      <Field label={t.rescheduleReasonLabel} htmlFor={`resched-reason-${booking.id}`}>
+        <input
+          id={`resched-reason-${booking.id}`}
+          value={reason}
+          placeholder={t.rescheduleReasonPlaceholder}
+          onChange={(event) => setReason(event.target.value)}
+        />
+      </Field>
+      {error && <FlowNotice tone="error">{error}</FlowNotice>}
+      <div className="flow-actions">
+        <button className="button button-primary" type="button" onClick={confirm} disabled={busy || !slotStart}>
+          {busy ? t.rescheduling : t.rescheduleConfirm}
+          <Icon name="arrow" />
+        </button>
+        <button className="text-link" type="button" onClick={onClose} disabled={busy}>
+          {t.cancel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RescheduleModal({
+  booking,
+  customer,
+  flow,
+  onDone,
+  onClose,
+}: {
+  booking: Booking;
+  customer: Customer;
+  flow: Flow;
+  onDone: () => void;
+  onClose: () => void;
+}) {
+  const { t, language, dir } = flow;
+  const product = productOf(booking);
+  // Close on a real click of the dark area only: pressed and released there, not on the scrollbar.
+  const pressedOutside = useRef(false);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(event) => {
+        const box = event.currentTarget;
+        pressedOutside.current =
+          event.target === box && event.clientX < box.clientWidth && event.clientY < box.clientHeight;
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget && pressedOutside.current) onClose();
+        pressedOutside.current = false;
+      }}
+    >
+      <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="resched-title" dir={dir}>
+        <div className="modal-head">
+          <div>
+            <h2 id="resched-title">{t.rescheduleBooking}</h2>
+            <p className="flow-muted">
+              {product?.name[language]} · <bdi dir="ltr">{booking.ref}</bdi>
+              <br />
+              {flow.formatDay(booking.startsAt)} · {flow.formatTime(booking.startsAt)}
+            </p>
+          </div>
+          <button className="modal-close" type="button" aria-label={t.close} onClick={onClose}>
+            ×
+          </button>
+        </div>
+        <ReschedulePanel booking={booking} customer={customer} flow={flow} onDone={onDone} onClose={onClose} />
+      </div>
+    </div>
+  );
+}
+
+function BookingCard({
+  booking,
+  db,
+  flow,
+  now,
+  onReschedule,
+}: {
+  booking: Booking;
+  db: ReturnType<typeof useDb>["db"];
+  flow: Flow;
+  now: number;
+  onReschedule: () => void;
+}) {
   const branch = useBranch();
   const { t, language } = flow;
   const product = productOf(booking);
@@ -116,10 +287,17 @@ function BookingCard({ booking, db, flow }: { booking: Booking; db: ReturnType<t
           <bdi dir="ltr">{booking.ref}</bdi>
         </p>
       </div>
-      <Link className="button button-outline booking-card-cta" href={`/${branch}/account/bookings/${booking.id}`}>
-        {t.viewDetails}
-        <Icon name="arrow" />
-      </Link>
+      <div className="booking-card-actions">
+        {canChangeBooking(booking, now) && (
+          <button className="button button-outline booking-card-cta" type="button" onClick={onReschedule}>
+            {t.rescheduleBooking}
+          </button>
+        )}
+        <Link className="button button-outline booking-card-cta" href={`/${branch}/account/bookings/${booking.id}`}>
+          {t.viewDetails}
+          <Icon name="arrow" />
+        </Link>
+      </div>
     </li>
   );
 }
@@ -133,7 +311,15 @@ function BookingsInner({ customer }: { customer: Customer }) {
   const flow = useFlow();
   const { t, dir } = flow;
   const { db } = useDb();
-  const [tab, setTab] = useState<"upcoming" | "past" | "cancelled">("upcoming");
+  const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
+  const router = useRouter();
+  const search = useSearchParams();
+  const [reschedulingId, setReschedulingId] = useState(search.get("reschedule") ?? "");
+  const [notice, setNotice] = useState("");
+  const closeReschedule = () => {
+    setReschedulingId("");
+    if (search.get("reschedule")) router.replace(`/${branch}/account/bookings`, { scroll: false });
+  };
   const all = customerBookings(db, customer.id);
   const now = useNow();
   const lists = {
@@ -148,19 +334,25 @@ function BookingsInner({ customer }: { customer: Customer }) {
           ((item.status === "confirmed" || item.status === "pending") && new Date(item.endsAt).getTime() < now),
       )
       .sort((a, b) => b.startsAt.localeCompare(a.startsAt)),
-    cancelled: all.filter((item) => item.status === "cancelled").sort((a, b) => b.startsAt.localeCompare(a.startsAt)),
   };
-  const empty = { upcoming: t.emptyUpcoming, past: t.emptyPast, cancelled: t.emptyCancelled };
+  const reschedulingBooking = all.find((item) => item.id === reschedulingId && canChangeBooking(item, now));
+  const empty = { upcoming: t.emptyUpcoming, past: t.emptyPast };
   const tabs = [
     ["upcoming", t.tabUpcoming],
     ["past", t.tabPast],
-    ["cancelled", t.tabCancelled],
   ] as const;
 
   return (
     <section className="page-section account-screen" dir={dir}>
       <PageHead title={t.bookingsTitle} subtitle={t.bookingsSubtitle} />
       <AccountNav active="bookings" />
+
+      {notice && <FlowNotice tone="success">{notice}</FlowNotice>}
+      {lists.upcoming
+        .filter((booking) => inReminderWindow(booking, now))
+        .map((booking) => (
+          <VisitReminder key={booking.id} booking={booking} onReschedule={() => setReschedulingId(booking.id)} />
+        ))}
 
       <div className="service-tabs journey-tabs account-tabs" role="tablist">
         {tabs.map(([key, label]) => (
@@ -188,9 +380,31 @@ function BookingsInner({ customer }: { customer: Customer }) {
       ) : (
         <ul className="booking-card-list">
           {lists[tab].map((booking) => (
-            <BookingCard key={booking.id} booking={booking} db={db} flow={flow} />
+            <BookingCard
+              key={booking.id}
+              booking={booking}
+              db={db}
+              flow={flow}
+              now={now}
+              onReschedule={() => setReschedulingId(booking.id)}
+            />
           ))}
         </ul>
+      )}
+
+      {reschedulingBooking && (
+        <RescheduleModal
+          key={reschedulingBooking.id}
+          booking={reschedulingBooking}
+          customer={customer}
+          flow={flow}
+          onClose={closeReschedule}
+          onDone={() => {
+            closeReschedule();
+            setNotice(t.rescheduledOk);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
       )}
     </section>
   );
@@ -237,13 +451,11 @@ function BookingDetailInner({ customer }: { customer: Customer }) {
   const { db } = useDb();
   const now = useNow();
   const booking = db.bookings.find((item) => item.id === params.id && item.customerId === customer.id);
-  const [mode, setMode] = useState<"view" | "reschedule">("view");
-  const [reason, setReason] = useState("");
+  const search = useSearchParams();
+  const [mode, setMode] = useState<"view" | "reschedule">(search.get("reschedule") === "1" ? "reschedule" : "view");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [slotStart, setSlotStart] = useState("");
-  const [specialist, setSpecialist] = useState("any");
 
   if (!booking) {
     return (
@@ -266,33 +478,14 @@ function BookingDetailInner({ customer }: { customer: Customer }) {
     booking.status === "pending"
       ? Math.max(0, Math.ceil(RULES.slotHoldMinutes - (now - new Date(booking.createdAt).getTime()) / 60_000))
       : 0;
-  const serviceId = pkg ? pkg.serviceId : booking.serviceId;
 
   function describe(failure: unknown) {
     if (failure instanceof EngineError) {
       if (failure.code === "SLOT_UNAVAILABLE") return failure.detail === "specialist_busy" ? t.specialistBusy : t.slotTaken;
       if (failure.code === "PACKAGE_EXPIRED") return t.packageExpired;
       if (failure.code === "CONFLICT" && failure.detail === "within_window") return t.withinWindow;
-      if (failure.code === "VALIDATION_FAILED") return t.errReason;
     }
     return t.genericError;
-  }
-
-  async function confirmReschedule() {
-    if (!booking || !slotStart) return;
-    setError("");
-    setBusy(true);
-    try {
-      await rescheduleBooking(customer.id, booking.id, { startsAt: slotStart, specialistId: specialist, reason });
-      setMode("view");
-      setReason("");
-      setSlotStart("");
-      setMessage(t.rescheduledOk);
-    } catch (failure) {
-      setError(describe(failure));
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function payHeld() {
@@ -330,6 +523,7 @@ function BookingDetailInner({ customer }: { customer: Customer }) {
 
       {message && <FlowNotice tone="success">{message}</FlowNotice>}
       {error && <FlowNotice tone="error">{error}</FlowNotice>}
+      {mode === "view" && inReminderWindow(booking, now) && <VisitReminder booking={booking} />}
       {booking.status === "pending" && (
         <FlowNotice>
           {holdMinutes > 0 ? fill(t.holdLeft, { m: holdMinutes }) : t.holdExpired}
@@ -374,7 +568,13 @@ function BookingDetailInner({ customer }: { customer: Customer }) {
           )}
           <div>
             <dt>{t.detailPrice}</dt>
-            <dd>{booking.entitlementId ? t.coveredByPackage : flow.money(booking.price)}</dd>
+            <dd>
+              {booking.entitlementId
+                ? booking.price > 0
+                  ? `${t.coveredByPackage} · ${t.addOnsPaidNow} ${flow.money(booking.price)}`
+                  : t.coveredByPackage
+                : flow.money(booking.price)}
+            </dd>
           </div>
           {booking.addOns && booking.addOns.length > 0 && (
             <div>
@@ -427,46 +627,16 @@ function BookingDetailInner({ customer }: { customer: Customer }) {
       )}
 
       {mode === "reschedule" && (
-        <div className="flow-panel">
-          <SlotPicker
-            db={db}
-            query={{
-              locationId: booking.locationId,
-              serviceId: pkg ? undefined : booking.serviceId,
-              packageId: pkg?.id,
-              guests: booking.guests,
-              excludeBookingId: booking.id,
-            }}
-            specialists={eligibleSpecialists(booking.locationId, serviceId)}
-            specialistId={specialist}
-            startsAt={slotStart}
-            suggestedId={booking.specialistId}
-            onSpecialist={setSpecialist}
-            onSlot={(slot) => setSlotStart(slot?.startsAt ?? "")}
-          />
-          <Field label={t.rescheduleReasonLabel} htmlFor="resched-reason">
-            <input
-              id="resched-reason"
-              value={reason}
-              placeholder={t.rescheduleReasonPlaceholder}
-              onChange={(event) => setReason(event.target.value)}
-            />
-          </Field>
-          <div className="flow-actions">
-            <button
-              className="button button-primary"
-              type="button"
-              onClick={confirmReschedule}
-              disabled={busy || !slotStart || !reason.trim()}
-            >
-              {busy ? t.rescheduling : t.rescheduleConfirm}
-              <Icon name="arrow" />
-            </button>
-            <button className="text-link" type="button" onClick={() => setMode("view")}>
-              {t.cancel}
-            </button>
-          </div>
-        </div>
+        <ReschedulePanel
+          booking={booking}
+          customer={customer}
+          flow={flow}
+          onClose={() => setMode("view")}
+          onDone={() => {
+            setMode("view");
+            setMessage(t.rescheduledOk);
+          }}
+        />
       )}
 
       {(booking.status === "completed" || booking.status === "cancelled" || booking.status === "no_show") && product && (
@@ -649,6 +819,23 @@ function PackageDetailInner({ customer }: { customer: Customer }) {
             <dt>{t.summaryCity}</dt>
             <dd>{cityLabel(entitlement.locationId, language)}</dd>
           </div>
+          {entitlement.addOns && entitlement.addOns.length > 0 && (
+            <div>
+              <dt>{t.detailAddOns}</dt>
+              <dd>
+                {entitlement.addOns.map((credit) => (
+                  <span className="add-on-credit" key={credit.id}>
+                    {addOnName(credit.id, language)}
+                    {credit.people > 1 ? ` × ${countLabel(t, "people", credit.people, flow.formatNumber(credit.people))}` : ""} —{" "}
+                    {fill(t.addOnCreditsLeft, {
+                      left: flow.formatNumber(credit.visitsTotal - credit.visitsUsed),
+                      total: flow.formatNumber(credit.visitsTotal),
+                    })}
+                  </span>
+                ))}
+              </dd>
+            </div>
+          )}
         </dl>
 
         <div className="detail-side">
@@ -708,6 +895,31 @@ function PackageDetailInner({ customer }: { customer: Customer }) {
           </li>
         ))}
       </ol>
+    </section>
+  );
+}
+
+export function NotificationsView() {
+  return <AccountPage>{(customer) => <NotificationsInner customer={customer} />}</AccountPage>;
+}
+
+function NotificationsInner({ customer }: { customer: Customer }) {
+  const flow = useFlow();
+  const { t, dir } = flow;
+  const { unread } = useNotifications(customer.id);
+
+  return (
+    <section className="page-section account-screen" dir={dir}>
+      <PageHead title={t.notifTitle} subtitle={t.notifSubtitle} />
+      <AccountNav active="notifications" />
+      {unread > 0 && (
+        <div className="flow-actions notif-page-actions">
+          <button className="text-link" type="button" onClick={() => markNotificationsRead(customer.id)}>
+            {t.notifMarkAll}
+          </button>
+        </div>
+      )}
+      <NotificationList customerId={customer.id} />
     </section>
   );
 }
@@ -858,9 +1070,8 @@ function AddressesInner({ customer }: { customer: Customer }) {
     setError("");
     if (!editing.district.trim()) return setError(t.errDistrict);
     if (!editing.street.trim()) return setError(t.errStreet);
-    if (!editing.mapLink.trim()) return setError(t.errMapLink);
-    if (!isMapLink(editing.mapLink)) return setError(t.errMapLinkInvalid);
     const point = parseMapLink(editing.mapLink);
+    if (!point) return setError(t.errPinLocation);
     setBusy(true);
     try {
       await saveAddress(customer.id, {
@@ -870,9 +1081,9 @@ function AddressesInner({ customer }: { customer: Customer }) {
         street: editing.street.trim(),
         building: editing.building.trim(),
         notes: editing.notes.trim() || undefined,
-        lat: point?.lat,
-        lng: point?.lng,
-        mapLink: editing.mapLink.trim(),
+        lat: point.lat,
+        lng: point.lng,
+        mapLink: googleMapsLink(point),
         locationId: editing.locationId,
       });
       setEditing(null);
@@ -966,9 +1177,14 @@ function AddressesInner({ customer }: { customer: Customer }) {
           <Field label={t.addressNotes} htmlFor="ea-notes">
             <input id="ea-notes" value={editing.notes} placeholder={t.addressNotesPlaceholder} onChange={(event) => set({ notes: event.target.value })} />
           </Field>
-          <Field label={t.mapLink} hint={t.mapLinkHint} htmlFor="ea-map">
-            <input id="ea-map" value={editing.mapLink} onChange={(event) => set({ mapLink: event.target.value })} dir="ltr" />
-          </Field>
+          <MapPicker
+            key={editing.locationId}
+            locationId={editing.locationId}
+            value={parseMapLink(editing.mapLink)}
+            onChange={(point) => set({ mapLink: googleMapsLink(point) })}
+            fields={{ district: editing.district, street: editing.street }}
+            onAddress={(guess) => set(guess)}
+          />
           {error && <FlowNotice tone="error">{error}</FlowNotice>}
           <div className="flow-actions">
             <button className="button button-primary" type="submit" disabled={busy}>
@@ -1102,7 +1318,15 @@ function ConfirmationInner({ customer }: { customer: Customer }) {
           )}
           <div>
             <dt>{t.detailPrice}</dt>
-            <dd>{entitlement ? (entitlement.price > 0 && session?.index === 1 ? flow.money(entitlement.price) : t.coveredByPackage) : flow.money(booking.price)}</dd>
+            <dd>
+              {entitlement
+                ? entitlement.price > 0 && session?.index === 1
+                  ? flow.money(entitlement.price)
+                  : booking.price > 0
+                    ? `${t.coveredByPackage} · ${t.addOnsPaidNow} ${flow.money(booking.price)}`
+                    : t.coveredByPackage
+                : flow.money(booking.price)}
+            </dd>
           </div>
         </dl>
 

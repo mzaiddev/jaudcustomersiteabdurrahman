@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { authHref, useAuth } from "./auth";
 import { Icon } from "./components";
+import { NotificationBell, NotificationToaster } from "./notifications";
 import { useFlow } from "./flow-ui";
 import { BRANCH_KEY, writeStored } from "./storage";
 import { Brand, useBranch } from "./site-ui";
@@ -142,6 +143,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
             <Icon name="globe" />
             <span>{text.language}</span>
           </button>
+          <NotificationBell base={base} />
           <AccountMenu base={base} />
           <Link className="header-icon-link" href={`${base}/account/packages`} aria-label={t.packagesShortcut} title={t.packagesShortcut}>
             <Icon name="cart" />
@@ -150,6 +152,8 @@ export function SiteShell({ children }: { children: ReactNode }) {
       </header>
 
       {children}
+
+      <NotificationToaster />
 
       <footer className="site-footer">
         <Brand href={base} />

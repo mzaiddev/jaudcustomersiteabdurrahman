@@ -69,7 +69,11 @@ export type BookingDraft = {
   specialist: string;
   date: string;
   time: string;
-  addOns: string[];
+  /** Service or package purchase: { id, visits, people }. Kept loose because old drafts may differ. */
+  addOns: unknown[];
+  /** Later package visit: extras paid for this visit, and package credits turned off. */
+  extraAddOns?: unknown[];
+  skipCredits?: string[];
 };
 
 export const emptyDraft: BookingDraft = {
@@ -80,6 +84,8 @@ export const emptyDraft: BookingDraft = {
   date: "",
   time: "",
   addOns: [],
+  extraAddOns: [],
+  skipCredits: [],
 };
 
 export function draftKey(branch: string, product: string, entitlementId?: string) {

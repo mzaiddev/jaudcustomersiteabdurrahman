@@ -17,13 +17,19 @@ import {
   riyadhParts,
   riyadhToday,
   addDays,
-  addOnMinutes,
-  validAddOns,
+  addOnCost,
+  inReminderWindow,
+  cleanAddOnLines,
+  visitAddOnMinutes,
   weekdayOf,
+  type AddOnLine,
+  type VisitAddOn,
 } from "./rules";
 import { readStoredValue, subscribeStored, writeStored } from "./storage";
 import {
   EngineError,
+  type AddOnCredit,
+  type AppNotification,
   type Address,
   type Booking,
   type Customer,
@@ -40,7 +46,7 @@ import {
 } from "./types";
 
 export const DB_KEY = "joud-db";
-const DB_VERSION = 1;
+const DB_VERSION = 3;
 const CUSTOMER_ACTOR = "Customer (website)";
 const BLOCKING = ["pending", "confirmed", "completed"];
 
@@ -328,7 +334,7 @@ function buildSeed(): Db {
     });
   }
 
-  return { version: DB_VERSION, customers, bookings, entitlements, payments, sessionCustomerId: null };
+  return { version: DB_VERSION, customers, bookings, entitlements, payments, notifications: [], sessionCustomerId: null };
 }
 
 /* ------------------------------ store ------------------------------ */
@@ -357,6 +363,7 @@ function mutate<T>(change: (db: Db) => T): T {
   const next = structuredClone(readDb());
   const result = change(next);
   releaseExpiredHolds(next);
+  sweepReminders(next);
   writeStored(DB_KEY, next);
   return result;
 }
@@ -394,6 +401,7 @@ export function releaseExpiredHolds(db: Db, now = Date.now()) {
     if (booking.status !== "pending") continue;
     if (now - new Date(booking.createdAt).getTime() < holdMs) continue;
     cancelInPlace(db, booking, "Payment hold expired", "System", now);
+    notify(db, { customerId: booking.customerId, kind: "expired", bookingId: booking.id, key: `expired:${booking.id}` });
     changed = true;
   }
 
@@ -408,8 +416,60 @@ export function hasExpiredHolds(db: Db, now = Date.now()) {
 }
 
 export function sweepHolds() {
-  if (!hasExpiredHolds(readDb())) return;
+  const db = readDb();
+  if (!hasExpiredHolds(db) && !hasDueReminders(db)) return;
   mutate(() => undefined);
+}
+
+/* ---------------------------- notifications ---------------------------- */
+
+/**
+ * Adds a message for a customer unless one with the same `key` already exists.
+ * Use it from any engine function: `notify(db, { customerId, kind: "info", key, message })` for a custom message.
+ */
+export function notify(
+  db: Db,
+  input: Pick<AppNotification, "customerId" | "kind" | "key"> & Partial<Pick<AppNotification, "bookingId" | "message">>,
+  now = Date.now(),
+) {
+  if (db.notifications.some((item) => item.customerId === input.customerId && item.key === input.key)) return false;
+  db.notifications.push({ id: uid("nt"), createdAt: new Date(now).toISOString(), ...input });
+  return true;
+}
+
+function reminderKey(booking: Booking) {
+  return `reminder:${booking.id}:${booking.startsAt}`;
+}
+
+/** Visits in the 24–48 hour window that have not been reminded yet. */
+export function hasDueReminders(db: Db, now = Date.now()) {
+  return db.bookings.some(
+    (booking) =>
+      inReminderWindow(booking, now) &&
+      !db.notifications.some((item) => item.customerId === booking.customerId && item.key === reminderKey(booking)),
+  );
+}
+
+/** Sends the "you can still reschedule" reminder once per visit time. */
+export function sweepReminders(db: Db, now = Date.now()) {
+  let changed = false;
+  for (const booking of db.bookings) {
+    if (!inReminderWindow(booking, now)) continue;
+    changed =
+      notify(db, { customerId: booking.customerId, kind: "reminder", bookingId: booking.id, key: reminderKey(booking) }, now) ||
+      changed;
+  }
+  return changed;
+}
+
+export function markNotificationsRead(customerId: string, ids?: string[]) {
+  const at = new Date().toISOString();
+  mutate((db) => {
+    for (const item of db.notifications) {
+      if (item.customerId !== customerId || item.readAt) continue;
+      if (!ids || ids.includes(item.id)) item.readAt = at;
+    }
+  });
 }
 
 /* --------------------------- availability --------------------------- */
@@ -435,7 +495,7 @@ export function computeSlots(db: Db, query: SlotQuery, now = Date.now()): SlotOp
   if (query.date < today || query.date > addDays(today, RULES.maxDaysAhead)) return [];
 
   const guests = pkg ? Math.max(pkg.guests, query.guests ?? pkg.guests) : 1;
-  const duration = product.minutes * guests + (pkg ? 0 : Math.max(0, query.extraMinutes ?? 0));
+  const duration = product.minutes * guests + Math.max(0, query.extraMinutes ?? 0);
   const serviceId = pkg ? pkg.serviceId : service?.id;
   const weekday = weekdayOf(query.date);
   const holdMs = RULES.slotHoldMinutes * 60_000;
@@ -646,6 +706,12 @@ function releaseSession(entitlement: Entitlement, booking: Booking) {
   ).length;
   if (reserved <= returned) return;
   entitlement.sessionsReserved = Math.max(0, entitlement.sessionsReserved - 1);
+  // Give back the add-on credits this visit was using.
+  for (const used of booking.addOns ?? []) {
+    if (used.source !== "package") continue;
+    const credit = entitlement.addOns?.find((item) => item.id === used.id);
+    if (credit) credit.visitsUsed = Math.max(0, credit.visitsUsed - 1);
+  }
   addLedger(entitlement, {
     type: "released",
     delta: 1,
@@ -704,14 +770,34 @@ export async function createBooking(customerId: string, input: NewBookingInput):
     }
 
     const guests = guestsFor(product, input.guests);
-    const addOns = pkg ? [] : validAddOns(input.addOns);
+
+    // Add-ons: a service is 1 visit × 1 person; a package purchase may cover several visits and people;
+    // a later package visit uses the credits it still has and may buy extras for this visit only.
+    let purchased: AddOnLine[] = [];
+    let extras: AddOnLine[] = [];
+    const fromCredits: AddOnCredit[] = [];
+    if (entitlement) {
+      extras = cleanAddOnLines(input.extraAddOns, 1, guests);
+      for (const credit of entitlement.addOns ?? []) {
+        if (input.useCredits?.includes(credit.id) && credit.visitsUsed < credit.visitsTotal) fromCredits.push(credit);
+      }
+    } else {
+      purchased = cleanAddOnLines(input.addOns, pkg ? pkg.sessions : 1, guests);
+    }
+    const visitAddOns: VisitAddOn[] = [
+      ...(pkg && !entitlement ? purchased.map((line) => ({ id: line.id, people: line.people, source: "package" as const })) : []),
+      ...(service ? purchased.map((line) => ({ id: line.id, people: 1, source: "paid" as const })) : []),
+      ...fromCredits.map((credit) => ({ id: credit.id, people: credit.people, source: "package" as const })),
+      ...extras.map((line) => ({ id: line.id, people: line.people, source: "paid" as const })),
+    ];
+
     const slot = computeSlots(db, {
       locationId: input.locationId,
       serviceId: service?.id,
       packageId: pkg?.id,
       date: riyadhParts(input.startsAt).date,
       guests,
-      extraMinutes: addOnMinutes(addOns),
+      extraMinutes: visitAddOnMinutes(visitAddOns),
     }).find((option) => new Date(option.startsAt).getTime() === new Date(input.startsAt).getTime());
     if (!slot) throw new EngineError("SLOT_UNAVAILABLE", "taken");
 
@@ -720,7 +806,8 @@ export async function createBooking(customerId: string, input: NewBookingInput):
     else if (!slot.specialistIds.includes(specialistId)) throw new EngineError("SLOT_UNAVAILABLE", "specialist_busy");
 
     const now = new Date().toISOString();
-    const price = priceFor(product, guests, addOns);
+    const price = priceFor(product, guests, purchased);
+    const extrasCost = addOnCost(extras);
     const refNumber = nextRef("BK", db.bookings.map((b) => b.ref), 1001);
     const bookingId = uid("bk");
     const covered = Boolean(entitlement);
@@ -741,17 +828,27 @@ export async function createBooking(customerId: string, input: NewBookingInput):
         price: price.total,
         paymentStatus: "pending",
         ledger: [],
+        addOns:
+          purchased.length > 0
+            ? purchased.map((line) => ({ id: line.id, people: line.people, visitsTotal: line.visits, visitsUsed: 0 }))
+            : undefined,
       };
       addLedger(entitlement, { type: "purchased", delta: pkg.sessions, reason: "Bought online" });
       db.entitlements.push(entitlement);
     }
     if (entitlement) {
       entitlement.sessionsReserved += 1;
+      for (const used of visitAddOns) {
+        if (used.source !== "package") continue;
+        const credit = entitlement.addOns?.find((item) => item.id === used.id);
+        if (credit) credit.visitsUsed += 1;
+      }
       addLedger(entitlement, { type: "reserved", delta: -1, bookingId, reason: `Visit ${refNumber}` });
     }
 
     const userNotes = input.notes?.trim();
-    const confirmedNow = covered && entitlement?.paymentStatus === "paid";
+    // A covered visit with nothing extra to pay is confirmed straight away.
+    const confirmedNow = covered && entitlement?.paymentStatus === "paid" && extrasCost === 0;
     const booking: Booking = {
       id: bookingId,
       ref: refNumber,
@@ -769,13 +866,14 @@ export async function createBooking(customerId: string, input: NewBookingInput):
       startsAt: slot.startsAt,
       endsAt: slot.endsAt,
       guests,
-      addOns: addOns.length > 0 ? addOns : undefined,
-      price: pkg ? 0 : price.total,
+      addOns: visitAddOns.length > 0 ? visitAddOns : undefined,
+      price: pkg ? extrasCost : price.total,
       notes: userNotes || undefined,
       history: [{ at: now, by: CUSTOMER_ACTOR, action: "created", note: "Website" }],
       createdAt: now,
     };
     db.bookings.push(booking);
+    if (confirmedNow) notify(db, { customerId: customer.id, kind: "confirmed", bookingId: booking.id, key: `confirmed:${booking.id}` });
 
     const saved = customer.addresses.some((item) => item.id === input.address.id);
     if (!saved) customer.addresses.push(booking.address);
@@ -830,6 +928,7 @@ export async function payBooking(
 
     booking.status = "confirmed";
     booking.paymentStatus = "paid";
+    notify(db, { customerId, kind: "confirmed", bookingId: booking.id, key: `confirmed:${booking.id}` });
     booking.history.push({ at: now, by: CUSTOMER_ACTOR, action: "paid", note: method });
     if (buyingPackage) {
       entitlement.paymentStatus = "paid";
@@ -902,7 +1001,7 @@ export async function rescheduleBooking(
       packageId: pkg?.id,
       date: riyadhParts(input.startsAt).date,
       guests: booking.guests,
-      extraMinutes: addOnMinutes(booking.addOns),
+      extraMinutes: visitAddOnMinutes(booking.addOns),
       excludeBookingId: booking.id,
     }).find((option) => new Date(option.startsAt).getTime() === new Date(input.startsAt).getTime());
     if (!slot) throw new EngineError("SLOT_UNAVAILABLE", "taken");
@@ -925,6 +1024,12 @@ export async function rescheduleBooking(
     booking.startsAt = slot.startsAt;
     booking.endsAt = slot.endsAt;
     booking.specialistId = specialistId;
+    notify(db, {
+      customerId,
+      kind: "rescheduled",
+      bookingId: booking.id,
+      key: `rescheduled:${booking.id}:${slot.startsAt}`,
+    });
     return booking;
   });
 }

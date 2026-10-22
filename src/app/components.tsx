@@ -29,6 +29,12 @@ export function Icon({
 
   const paths: Record<IconName, ReactNode> = {
     arrow: <path d="M4 10h11m-4-4 4 4-4 4" />,
+    bell: (
+      <>
+        <path d="M5 14V9a5 5 0 0 1 10 0v5l1.5 2h-13L5 14Z" />
+        <path d="M8.5 17.5a1.6 1.6 0 0 0 3 0" />
+      </>
+    ),
     calendar: (
       <>
         <rect x="3" y="5" width="14" height="12" rx="1" />
